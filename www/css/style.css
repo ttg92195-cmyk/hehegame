@@ -313,7 +313,7 @@ body {
 }
 #bgm-toggle:hover { background: rgba(255,136,0,0.2); }
 
-/* ===== Mobile Controls ===== */
+/* ===== Mobile Controls (v4.0 Ultra-Smooth) ===== */
 #mobile-controls {
     position: fixed; inset: 0; z-index: 80; pointer-events: none;
 }
@@ -331,6 +331,7 @@ body {
     border-radius: 50%; position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
+    transition: none; /* v4.0: No CSS transition - JS handles smoothing */
 }
 #mobile-btns {
     position: absolute; bottom: 20px; right: 20px;
@@ -343,10 +344,30 @@ body {
     border: 2px solid rgba(255,255,255,0.15);
     border-radius: 50%; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.1s;
+    transition: transform 0.08s ease, background 0.08s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
-.mobile-btn:active { background: rgba(255,136,0,0.3); border-color: rgba(255,136,0,0.6); transform: scale(0.95); }
-.shoot-btn { width: 80px; height: 80px; font-size: 2em; background: rgba(255,68,68,0.2); border-color: rgba(255,68,68,0.5); }
+.mobile-btn:active {
+    background: rgba(255,136,0,0.3);
+    border-color: rgba(255,136,0,0.6);
+    transform: scale(0.9); /* v4.0: More pronounced active feedback */
+}
+.shoot-btn {
+    width: 85px; height: 85px; font-size: 2.2em;
+    background: rgba(255,68,68,0.2); border-color: rgba(255,68,68,0.5);
+}
+.shoot-btn:active {
+    background: rgba(255,68,68,0.5);
+    transform: scale(0.88);
+}
+.drive-btn {
+    background: rgba(0,200,0,0.15); border-color: rgba(0,200,0,0.4);
+}
+.drive-btn:active {
+    background: rgba(0,200,0,0.4);
+    transform: scale(0.9);
+}
 
 /* ===== Pause & Game Over Screens ===== */
 .screen {

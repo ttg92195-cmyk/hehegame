@@ -1,9 +1,10 @@
 // ============================================================
-// 🔫 HEHE FPS v5.0 - 3D Zombie Apocalypse Shooter
-// Features: 6 Weapons, 4 Maps, Humanoid Enemies, Boss Fights,
-//   Procedural BGM, Economy/Shop, Kill Streaks, Drivable Car,
-//   Enterable Houses, Loot System, Ultra-Smooth Mobile Controls
+// 🔫 HEHE FPS v3.2 - 3D First Person Shooter Game Engine
+// Features: 6 Weapons, 4 Maps (Giant Forest), Humanoid Enemies,
+//           Boss Fights, Procedural BGM, Native Landscape Lock
 // Built with Three.js | Mobile + Desktop Support
+// v3.2 Hotfix: Removed CSS transform rotation, using Android
+//   native landscape lock via AndroidManifest + Capacitor config
 // ============================================================
 
 class HeheFPS {
@@ -18,43 +19,12 @@ class HeheFPS {
         this.enemiesPerWave = 5; this.waveDelay = false;
         this.bestScore = parseInt(localStorage.getItem('heheFPSBest')) || 0;
 
-        // ========= ECONOMY SYSTEM (v4.5) =========
-        this.money = 0;
-        this.damageMultiplier = 1;
-        this.shopOpen = false;
-        this.waveBreakTimer = 0;
-        this.waveBreakDuration = 15;
-        this.ownedWeapons = [true, false, false, false, false, false]; // Only pistol at start
-
-        // ========= KILL STREAK (v4.5) =========
-        this.killStreak = 0;
-        this.lastKillTime = 0;
-        this.killStreakTimeout = null;
-
-        // ========= DRIVABLE CAR (v5.0) =========
-        this.isDriving = false;
-        this.carMesh = null;
-        this.carSpeed = 0;
-        this.carMaxSpeed = 25;
-        this.carSteer = 0;
-        this.carPosition = null;
-        this.carRotation = 0;
-        this.nearCar = false;
-
         // Player
         this.health = 100; this.maxHealth = 100;
         this.moveSpeed = 8; this.sprintSpeed = 14;
         this.isSprinting = false; this.velocity = new THREE.Vector3();
         this.moveForward = false; this.moveBackward = false;
         this.moveLeft = false; this.moveRight = false;
-
-        // ========= SMOOTH CAMERA (v4.0 Mobile) =========
-        this.targetYaw = 0;
-        this.targetPitch = 0;
-        this.smoothJoystickX = 0;
-        this.smoothJoystickY = 0;
-        this.cameraLerpFactor = 0.15;
-        this.joystickLerpFactor = 0.12;
 
         // Camera
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -65,19 +35,19 @@ class HeheFPS {
 
         // ========= 6 WEAPONS =========
         this.weapons = [
-            { name:'PISTOL',   damage:25, fireRate:300,  ammo:12, maxAmmo:12, reloadTime:1500, spread:0.02, pellets:1, auto:false, icon:'🔫', price:0 },
-            { name:'RIFLE',    damage:15, fireRate:100,  ammo:30, maxAmmo:30, reloadTime:2000, spread:0.04, pellets:1, auto:true,  icon:'🔫', price:200 },
-            { name:'SHOTGUN',  damage:12, fireRate:800,  ammo:6,  maxAmmo:6,  reloadTime:2500, spread:0.12, pellets:8, auto:false, icon:'🔫', price:300 },
-            { name:'SNIPER',   damage:100,fireRate:1200, ammo:5,  maxAmmo:5,  reloadTime:2500, spread:0.005,pellets:1, auto:false, icon:'🎯', price:400 },
-            { name:'RPG',      damage:200,fireRate:2000, ammo:2,  maxAmmo:2,  reloadTime:3000, spread:0.03, pellets:1, auto:false, icon:'💥', explosive:true, explosionRadius:8, price:500 },
-            { name:'MINIGUN',  damage:8,  fireRate:50,   ammo:100,maxAmmo:100,reloadTime:4000, spread:0.08, pellets:1, auto:true,  icon:'⚡', price:600 }
+            { name:'PISTOL',   damage:25, fireRate:300,  ammo:12, maxAmmo:12, reloadTime:1500, spread:0.02, pellets:1, auto:false, icon:'🔫' },
+            { name:'RIFLE',    damage:15, fireRate:100,  ammo:30, maxAmmo:30, reloadTime:2000, spread:0.04, pellets:1, auto:true,  icon:'🔫' },
+            { name:'SHOTGUN',  damage:12, fireRate:800,  ammo:6,  maxAmmo:6,  reloadTime:2500, spread:0.12, pellets:8, auto:false, icon:'🔫' },
+            { name:'SNIPER',   damage:100,fireRate:1200, ammo:5,  maxAmmo:5,  reloadTime:2500, spread:0.005,pellets:1, auto:false, icon:'🎯' },
+            { name:'RPG',      damage:200,fireRate:2000, ammo:2,  maxAmmo:2,  reloadTime:3000, spread:0.03, pellets:1, auto:false, icon:'💥', explosive:true, explosionRadius:8 },
+            { name:'MINIGUN',  damage:8,  fireRate:50,   ammo:100,maxAmmo:100,reloadTime:4000, spread:0.08, pellets:1, auto:true,  icon:'⚡' }
         ];
         this.currentWeapon = 0;
         this.lastFireTime = 0; this.isReloading = false;
         this.reloadStartTime = 0; this.weaponMesh = null;
         this.weaponRecoil = 0; this.mouseDown = false;
 
-        // ========= 4 MAPS =========
+        // ========= 3 MAPS =========
         this.selectedMap = 'arena';
         this.maps = {
             arena: {
@@ -96,7 +66,7 @@ class HeheFPS {
                 ambientIntensity: 0.3, dirIntensity: 1.0
             },
             forest: {
-                name: 'Zombie Forest', size: 150, fogColor: 0x0a1a0a, groundColor: 0x1a2a1a,
+                name: 'Forest Ruins', size: 150, fogColor: 0x0a1a0a, groundColor: 0x1a2a1a,
                 wallColor: 0x2a3a2a, neonColor: 0x66ff66, skyColor: 0x081208,
                 ambientIntensity: 0.35, dirIntensity: 0.7
             }
@@ -104,15 +74,14 @@ class HeheFPS {
 
         // Enemies
         this.enemies = [];
-        this.dyingEnemies = [];
         this.enemyTypes = {
-            basic:  { health:50,  speed:3,   damage:10, color:0x44aa44, size:1,   score:100, money:10 },
-            fast:   { health:30,  speed:6,   damage:8,  color:0xaa4444, size:0.8, score:150, money:15 },
-            tank:   { health:150, speed:1.5, damage:20, color:0x4444aa, size:1.5, score:250, money:25 },
-            boss:   { health:800, speed:2,   damage:25, color:0xff8800, size:2.5, score:2000, money:500 }
+            basic:  { health:50,  speed:3,   damage:10, color:0xff4444, size:1,   score:100 },
+            fast:   { health:30,  speed:6,   damage:8,  color:0x44ff44, size:0.8, score:150 },
+            tank:   { health:150, speed:1.5, damage:20, color:0x4444ff, size:1.5, score:250 },
+            boss:   { health:800, speed:2,   damage:25, color:0xff8800, size:2.5, score:2000 }
         };
 
-        // Boss System
+        // ========= BOSS SYSTEM =========
         this.currentBoss = null;
         this.bossPhase = 0;
         this.bossAttackTimer = 0;
@@ -121,23 +90,22 @@ class HeheFPS {
         // World
         this.arenaSize = 50;
         this.walls = []; this.obstacles = []; this.pickups = [];
-        this.houseInteriors = []; // Loot spawn points inside houses
 
         // Effects
         this.particles = [];
         this.muzzleFlash = null;
         this.explosions = [];
 
-        // BGM System
+        // ========= BGM SYSTEM =========
         this.bgmEnabled = true;
         this.bgmPlaying = false;
         this.bgmNodes = null;
         this.bgmInterval = null;
 
-        // Mobile Detection
-        this.isMobile = /Android|iPhone|iPad|iPod|webOS|mobile/i.test(navigator.userAgent) ||
-            window.innerWidth <= 768 ||
-            ('ontouchstart' in window) ||
+        // Mobile - Better detection for Capacitor APK
+        this.isMobile = /Android|iPhone|iPad|iPod|webOS|mobile/i.test(navigator.userAgent) || 
+            window.innerWidth <= 768 || 
+            ('ontouchstart' in window) || 
             (navigator.maxTouchPoints > 0);
         this.joystickActive = false; this.joystickDir = { x:0, y:0 };
         this.touchLookActive = false;
@@ -149,29 +117,26 @@ class HeheFPS {
         // Audio
         this.audioCtx = null;
 
-        // Shop UI reference
-        this.shopElement = null;
-        this.killStreakElement = null;
-        this.moneyDisplay = null;
-        this.waveBreakDisplay = null;
-        this.driveBtn = null;
-
         this.init();
     }
 
     init() {
         this.showLoading();
-        console.log('[HeheFPS v5.0] Initializing... Mobile:', this.isMobile);
+        console.log('[HeheFPS] Initializing... Mobile:', this.isMobile);
 
-        // v3.5: Orientation is handled natively by Android via AndroidManifest.xml
-        // No JavaScript orientation locking needed for APK builds
-        // Screen Orientation API is unreliable in WebViews - Android handles it
+        // ===== NATIVE LANDSCAPE LOCK for Mobile (v3.2 Hotfix) =====
+        // Only use Screen Orientation API - NO CSS transform fallback
+        // Android landscape is handled natively via AndroidManifest.xml
+        this.lockOrientationNative();
 
+        // Check Three.js loaded
         if (typeof THREE === 'undefined') {
-            document.getElementById('load-text').textContent = 'Error: 3D Engine failed to load.';
+            document.getElementById('load-text').textContent = 'Error: 3D Engine failed to load. Please restart.';
             document.getElementById('load-bar').style.background = '#ff4444';
+            console.error('[HeheFPS] THREE.js not loaded!');
             return;
         }
+        console.log('[HeheFPS] THREE.js loaded OK');
 
         try {
             this.initThree();
@@ -181,7 +146,6 @@ class HeheFPS {
             this.initEvents();
             this.initMobileControls();
             this.initMapSelector();
-            this.createDynamicUI();
         } catch (e) {
             document.getElementById('load-text').textContent = 'Error: ' + e.message;
             document.getElementById('load-bar').style.background = '#ff4444';
@@ -189,6 +153,7 @@ class HeheFPS {
             return;
         }
 
+        // Fast loading - complete in ~1 second
         let progress = 0;
         const loadInterval = setInterval(() => {
             progress += 15 + Math.random() * 10;
@@ -207,157 +172,39 @@ class HeheFPS {
 
     showLoading() { document.getElementById('loading-screen').classList.remove('hidden'); }
 
-    // ==================== DYNAMIC UI CREATION ====================
-    createDynamicUI() {
-        // Money display in HUD
-        const hudTop = document.getElementById('hud-top');
-        const moneyDiv = document.createElement('div');
-        moneyDiv.className = 'hud-money';
-        moneyDiv.innerHTML = '<span class="hud-label">CASH</span><span id="money-num" class="hud-value">$0</span>';
-        moneyDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);';
-        hudTop.appendChild(moneyDiv);
-        this.moneyDisplay = document.getElementById('money-num');
+    // ==================== NATIVE LANDSCAPE LOCK (v3.2 Hotfix) ====================
+    // v3.2: Removed forceLandscape() and applyCSSTransform() which caused
+    // CSS transform:rotate(90deg) double-rotation on Android.
+    // Now only uses the Screen Orientation API (no CSS fallback).
+    // Android native landscape is enforced via:
+    //   - AndroidManifest.xml: android:screenOrientation="landscape"
+    //   - capacitor.config.json: android.orientation = "landscape"
+    lockOrientationNative() {
+        if (!this.isMobile) return;
 
-        // Kill Streak display
-        const ksDiv = document.createElement('div');
-        ksDiv.id = 'kill-streak';
-        ksDiv.style.cssText = 'position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);z-index:120;pointer-events:none;text-align:center;opacity:0;transition:opacity 0.3s;';
-        ksDiv.innerHTML = '<div class="ks-text" style="font-size:3em;font-weight:900;color:#ff4444;text-shadow:0 0 20px rgba(255,68,68,0.8);"></div><div class="ks-bonus" style="font-size:1em;color:#ffaa00;margin-top:5px;"></div>';
-        document.body.appendChild(ksDiv);
-        this.killStreakElement = ksDiv;
-
-        // Wave Break display
-        const wbDiv = document.createElement('div');
-        wbDiv.id = 'wave-break';
-        wbDiv.style.cssText = 'position:fixed;top:15%;left:50%;transform:translateX(-50%);z-index:130;pointer-events:none;text-align:center;display:none;';
-        wbDiv.innerHTML = '<div style="font-size:1.5em;color:#ff8800;font-weight:700;">WAVE COMPLETE!</div><div id="wave-break-timer" style="font-size:3em;color:#fff;font-weight:900;">15</div><div style="font-size:0.9em;color:#888;">Next wave in...</div>';
-        document.body.appendChild(wbDiv);
-        this.waveBreakDisplay = wbDiv;
-
-        // Drive button for mobile (hidden by default)
-        if (this.isMobile) {
-            const driveBtn = document.createElement('button');
-            driveBtn.id = 'btn-drive';
-            driveBtn.className = 'mobile-btn drive-btn';
-            driveBtn.innerHTML = '🚗';
-            driveBtn.style.cssText = 'display:none;position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:85;width:60px;height:60px;font-size:1.5em;background:rgba(0,200,0,0.2);border:2px solid rgba(0,200,0,0.5);border-radius:50%;cursor:pointer;';
-            document.body.appendChild(driveBtn);
-            this.driveBtn = driveBtn;
-            driveBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (this.nearCar && !this.isDriving) this.enterCar();
-                else if (this.isDriving) this.exitCar();
-            }, { passive: false });
-        }
-
-        // Shop overlay
-        const shopDiv = document.createElement('div');
-        shopDiv.id = 'weapon-shop';
-        shopDiv.style.cssText = 'position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.9);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;';
-        shopDiv.innerHTML = `
-            <h2 style="font-size:2em;margin-bottom:5px;background:linear-gradient(90deg,#ff4444,#ff8800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🏪 WEAPON SHOP</h2>
-            <p style="color:#888;font-size:0.9em;margin-bottom:10px;">Your Cash: <span id="shop-money" style="color:#ffaa00;font-weight:700;">$0</span></p>
-            <div id="shop-items" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px;"></div>
-            <button id="shop-close" style="margin-top:15px;background:linear-gradient(135deg,#ff4444,#ff8800);color:#fff;border:none;padding:12px 40px;font-size:1.1em;font-weight:700;border-radius:50px;cursor:pointer;">CLOSE SHOP</button>
-        `;
-        document.body.appendChild(shopDiv);
-        this.shopElement = shopDiv;
-
-        document.getElementById('shop-close').addEventListener('click', () => this.hideShop());
-    }
-
-    // ==================== SHOP SYSTEM (v4.5) ====================
-    showShop() {
-        this.shopOpen = true;
-        this.isPaused = true;
-        const shopEl = this.shopElement;
-        shopEl.style.display = 'flex';
-        document.getElementById('shop-money').textContent = '$' + this.money;
-
-        const itemsContainer = document.getElementById('shop-items');
-        itemsContainer.innerHTML = '';
-
-        const shopItems = [
-            { name: 'Rifle', price: 200, action: () => this.buyWeapon(1) },
-            { name: 'Shotgun', price: 300, action: () => this.buyWeapon(2) },
-            { name: 'Sniper', price: 400, action: () => this.buyWeapon(3) },
-            { name: 'RPG', price: 500, action: () => this.buyWeapon(4) },
-            { name: 'Minigun', price: 600, action: () => this.buyWeapon(5) },
-            { name: 'HP Refill', price: 50, action: () => { this.health = this.maxHealth; this.updateHUD(); } },
-            { name: 'Ammo Refill', price: 30, action: () => { this.weapons[this.currentWeapon].ammo = this.weapons[this.currentWeapon].maxAmmo; this.updateHUD(); } },
-            { name: 'Damage Up +20%', price: 150, action: () => { this.damageMultiplier += 0.2; } },
-            { name: 'Max HP +25', price: 200, action: () => { this.maxHealth += 25; this.health = this.maxHealth; this.updateHUD(); } },
-        ];
-
-        shopItems.forEach(item => {
-            const btn = document.createElement('button');
-            const canAfford = this.money >= item.price;
-            const isWeaponBought = item.name !== 'HP Refill' && item.name !== 'Ammo Refill' && item.name !== 'Damage Up +20%' && item.name !== 'Max HP +25'
-                && this.weapons.find(w => w.name === item.name.toUpperCase()) && this.ownedWeapons[this.weapons.findIndex(w => w.name === item.name.toUpperCase())];
-
-            btn.style.cssText = `padding:10px 15px;border-radius:10px;cursor:pointer;font-size:0.9em;font-weight:600;min-width:120px;border:2px solid ${canAfford && !isWeaponBought ? 'rgba(255,136,0,0.5)' : 'rgba(255,255,255,0.1)'};background:${isWeaponBought ? 'rgba(0,255,0,0.1)' : canAfford ? 'rgba(255,136,0,0.15)' : 'rgba(255,255,255,0.03)'};color:${isWeaponBought ? '#44ff44' : canAfford ? '#ff8800' : '#555'};`;
-            btn.innerHTML = isWeaponBought ? `${item.name} ✅` : `${item.name}<br><span style="font-size:0.8em;">$${item.price}</span>`;
-
-            if (canAfford && !isWeaponBought) {
-                btn.addEventListener('click', () => {
-                    this.money -= item.price;
-                    item.action();
-                    document.getElementById('shop-money').textContent = '$' + this.money;
-                    this.updateHUD();
-                    this.showShop(); // Refresh shop
+        // Try native Screen Orientation API (works in Capacitor WebView)
+        const tryLock = () => {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').then(() => {
+                    console.log('[HeheFPS] Landscape locked via Screen Orientation API');
+                }).catch(err => {
+                    // Silently fail - AndroidManifest handles this natively in APK
+                    console.log('[HeheFPS] Screen orientation lock not available:', err.message);
                 });
             }
-            itemsContainer.appendChild(btn);
-        });
-    }
+        };
 
-    hideShop() {
-        this.shopOpen = false;
-        this.shopElement.style.display = 'none';
-        this.isPaused = false;
-    }
+        // Try on first user interaction (browsers require user gesture)
+        const onFirstInteraction = () => {
+            tryLock();
+            document.removeEventListener('touchstart', onFirstInteraction);
+            document.removeEventListener('click', onFirstInteraction);
+        };
+        document.addEventListener('touchstart', onFirstInteraction, { once: true });
+        document.addEventListener('click', onFirstInteraction, { once: true });
 
-    buyWeapon(index) {
-        if (this.ownedWeapons[index]) return;
-        this.ownedWeapons[index] = true;
-        this.switchWeapon(index);
-    }
-
-    // ==================== KILL STREAK (v4.5) ====================
-    checkKillStreak() {
-        const now = Date.now();
-        if (now - this.lastKillTime < 3000) {
-            this.killStreak++;
-        } else {
-            this.killStreak = 1;
-        }
-        this.lastKillTime = now;
-
-        if (this.killStreakTimeout) clearTimeout(this.killStreakTimeout);
-        this.killStreakTimeout = setTimeout(() => { this.killStreak = 0; }, 3000);
-
-        let text = '', bonus = 0, color = '#ff4444';
-        if (this.killStreak >= 5) { text = 'MEGA KILL!!'; bonus = 25; color = '#ff00ff'; }
-        else if (this.killStreak >= 3) { text = 'TRIPLE KILL!'; bonus = 10; color = '#ffaa00'; }
-        else if (this.killStreak >= 2) { text = 'DOUBLE KILL!'; bonus = 5; color = '#ff8800'; }
-
-        if (text) {
-            this.money += bonus;
-            this.showKillStreakText(text, bonus, color);
-        }
-    }
-
-    showKillStreakText(text, bonus, color) {
-        const el = this.killStreakElement;
-        el.querySelector('.ks-text').textContent = text;
-        el.querySelector('.ks-text').style.color = color;
-        el.querySelector('.ks-bonus').textContent = `+$${bonus}`;
-        el.style.opacity = '1';
-        el.style.transform = 'translate(-50%, -50%) scale(1.3)';
-        setTimeout(() => {
-            el.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 100);
-        setTimeout(() => { el.style.opacity = '0'; }, 1500);
+        // Also try immediately (works in some Capacitor WebViews)
+        tryLock();
     }
 
     // ==================== THREE.JS INIT ====================
@@ -379,13 +226,27 @@ class HeheFPS {
         if (!this.isMobile) this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('game-canvas-container').appendChild(this.renderer.domElement);
 
-        // v3.5: Clean resize handler - Android handles orientation natively
         window.addEventListener('resize', () => {
+            // v3.2 Hotfix: Clean resize handler - no CSS transform involved
+            // Canvas dimensions follow actual window size
             const w = window.innerWidth;
             const h = window.innerHeight;
             this.camera.aspect = w / h;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(w, h);
+            console.log('[HeheFPS] Resize:', w, 'x', h);
+        });
+
+        // Also handle orientation change for smoother transitions on mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                this.camera.aspect = w / h;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(w, h);
+                console.log('[HeheFPS] Orientation changed, resize:', w, 'x', h);
+            }, 100);
         });
     }
 
@@ -404,6 +265,7 @@ class HeheFPS {
         const map = this.maps[mapKey];
         this.arenaSize = map.size;
 
+        // Update scene atmosphere
         this.scene.background = new THREE.Color(map.skyColor);
         this.scene.fog = new THREE.Fog(map.fogColor, map.size * 0.3, Math.min(map.size * 2, 300));
 
@@ -417,8 +279,9 @@ class HeheFPS {
         const gridHelper = new THREE.GridHelper(map.size * 2, 40, map.fogColor, map.groundColor);
         this.scene.add(gridHelper);
 
+        // Walls
         this.createWalls(map);
-
+        // Obstacles (unique per map)
         if (mapKey === 'arena') this.createArenaObstacles(map);
         else if (mapKey === 'warehouse') this.createWarehouseObstacles(map);
         else if (mapKey === 'ruins') this.createRuinsObstacles(map);
@@ -436,33 +299,36 @@ class HeheFPS {
         dirLight.shadow.camera.top = 50; dirLight.shadow.camera.bottom = -50;
         this.scene.add(dirLight);
 
+        // Corner point lights
         const half = map.size;
         [[-half,5,-half],[half,5,half],[-half,5,half],[half,5,-half]].forEach(pos => {
             const light = new THREE.PointLight(map.neonColor, 0.5, 30);
             light.position.set(...pos); this.scene.add(light);
         });
 
+        // Center light
         const centerLight = new THREE.PointLight(map.neonColor, 0.8, 40);
         centerLight.position.set(0, 8, 0); this.scene.add(centerLight);
     }
 
     clearWorld() {
+        // Remove everything except camera rig
         const toRemove = [];
         this.scene.traverse(child => {
-            if (child !== this.scene && child !== this.yawObject && child !== this.pitchObject && child !== this.camera) {
-                toRemove.push(child);
+            if (child !== this.scene && !(child instanceof THREE.Object3D && child.children.includes(this.camera))) {
+                if (child !== this.yawObject && child !== this.pitchObject && child !== this.camera) {
+                    toRemove.push(child);
+                }
             }
         });
         toRemove.forEach(obj => this.scene.remove(obj));
         this.walls = []; this.obstacles = []; this.pickups = [];
-        this.houseInteriors = [];
         this.particles.forEach(p => this.scene.remove(p.mesh));
         this.particles = [];
         this.explosions.forEach(e => this.scene.remove(e.mesh));
         this.explosions = [];
         this.bossProjectiles.forEach(p => this.scene.remove(p.mesh));
         this.bossProjectiles = [];
-        this.dyingEnemies = [];
     }
 
     createWalls(map) {
@@ -484,6 +350,7 @@ class HeheFPS {
             this.scene.add(mesh); this.walls.push(mesh);
         });
 
+        // Neon strips
         const neonMat = new THREE.MeshBasicMaterial({ color: map.neonColor });
         wallConfigs.forEach(cfg => {
             const stripGeo = new THREE.BoxGeometry(cfg.w*0.98, 0.2, cfg.d*0.98);
@@ -512,6 +379,7 @@ class HeheFPS {
             this.scene.add(mesh); this.obstacles.push(mesh);
         });
 
+        // Columns
         const colMat = new THREE.MeshStandardMaterial({ color:0x556677, roughness:0.5, metalness:0.5 });
         [[-12,0,-12],[12,0,-12],[-12,0,12],[12,0,12]].forEach(pos => {
             const geo = new THREE.CylinderGeometry(0.8, 0.8, 5, 8);
@@ -526,6 +394,7 @@ class HeheFPS {
         const containerMat = new THREE.MeshStandardMaterial({ color:0x884422, roughness:0.7, metalness:0.3 });
         const shelfMat = new THREE.MeshStandardMaterial({ color:0x666655, roughness:0.5, metalness:0.5 });
 
+        // Containers (large boxes)
         const containerPositions = [
             [-12,2,-12],[12,2,-12],[-12,2,12],[12,2,12],
             [0,2,-15],[-15,2,0],[15,2,0],[0,2,15],
@@ -533,7 +402,7 @@ class HeheFPS {
         ];
 
         containerPositions.forEach((pos,i) => {
-            const w = 2+Math.random()*2, h = 1.5+Math.random()*2, d = 2+Math.random()*2;
+            const w = 2 + Math.random()*2, h = 1.5+Math.random()*2, d = 2+Math.random()*2;
             const geo = new THREE.BoxGeometry(w, h, d);
             const mesh = new THREE.Mesh(geo, i%2===0 ? containerMat : shelfMat);
             mesh.position.set(pos[0], h/2, pos[2]); mesh.castShadow = true; mesh.receiveShadow = true;
@@ -541,6 +410,7 @@ class HeheFPS {
             this.scene.add(mesh); this.obstacles.push(mesh);
         });
 
+        // Shelving rows
         for (let x = -12; x <= 12; x += 8) {
             for (let z = -8; z <= 8; z += 16) {
                 const geo = new THREE.BoxGeometry(0.3, 4, 6);
@@ -551,6 +421,7 @@ class HeheFPS {
             }
         }
 
+        // Barrels
         const barrelMat = new THREE.MeshStandardMaterial({ color:0x445544, roughness:0.6, metalness:0.4 });
         [[-5,0,-8],[7,0,3],[-3,0,12],[10,0,-10],[-10,0,5]].forEach(pos => {
             const geo = new THREE.CylinderGeometry(0.6, 0.6, 1.2, 8);
@@ -565,6 +436,7 @@ class HeheFPS {
         const stoneMat = new THREE.MeshStandardMaterial({ color:0x665544, roughness:0.9, metalness:0.1 });
         const pillarMat = new THREE.MeshStandardMaterial({ color:0x776655, roughness:0.7, metalness:0.2 });
 
+        // Broken walls
         const wallPositions = [
             { x:-15, z:0, w:8, h:4, d:0.5, ry:0 },
             { x:10, z:-10, w:6, h:3, d:0.5, ry:Math.PI/4 },
@@ -578,10 +450,11 @@ class HeheFPS {
             const mesh = new THREE.Mesh(geo, stoneMat);
             mesh.position.set(cfg.x, cfg.h/2, cfg.z); mesh.rotation.y = cfg.ry;
             mesh.castShadow = true; mesh.receiveShadow = true;
-            mesh.userData = { isObstacle: true, collisionRadius: cfg.w * 0.4 };
+            mesh.userData.isObstacle = true;
             this.scene.add(mesh); this.obstacles.push(mesh);
         });
 
+        // Broken pillars
         const pillarPositions = [
             [-10,0,-10],[10,0,-10],[-10,0,10],[10,0,10],
             [0,0,-20],[0,0,20],[-20,0,0],[20,0,0],
@@ -589,7 +462,7 @@ class HeheFPS {
         ];
 
         pillarPositions.forEach(pos => {
-            const h = 2+Math.random()*4;
+            const h = 2 + Math.random() * 4;
             const geo = new THREE.CylinderGeometry(0.6, 0.8, h, 8);
             const mesh = new THREE.Mesh(geo, pillarMat);
             mesh.position.set(pos[0], h/2, pos[2]); mesh.castShadow = true;
@@ -597,8 +470,9 @@ class HeheFPS {
             this.scene.add(mesh); this.obstacles.push(mesh);
         });
 
+        // Rubble
         for (let i = 0; i < 20; i++) {
-            const size = 0.3+Math.random()*0.8;
+            const size = 0.3 + Math.random() * 0.8;
             const geo = new THREE.DodecahedronGeometry(size, 0);
             const mesh = new THREE.Mesh(geo, stoneMat);
             mesh.position.set((Math.random()-0.5)*map.size*1.5, size/2, (Math.random()-0.5)*map.size*1.5);
@@ -607,6 +481,7 @@ class HeheFPS {
             this.scene.add(mesh); this.obstacles.push(mesh);
         }
 
+        // Archway
         const archGeo = new THREE.TorusGeometry(3, 0.5, 8, 16, Math.PI);
         const archMesh = new THREE.Mesh(archGeo, pillarMat);
         archMesh.position.set(0, 3, 0); archMesh.rotation.y = Math.PI/2;
@@ -614,7 +489,7 @@ class HeheFPS {
         this.scene.add(archMesh);
     }
 
-    // ==================== FOREST MAP - ZOMBIE APOCALYPSE (v5.0) ====================
+    // ==================== FOREST MAP (Giant Open World) ====================
     createForestObstacles(map) {
         const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9, metalness: 0.1 });
         const treeLeavesMat = new THREE.MeshStandardMaterial({ color: 0x1a5a1a, roughness: 0.8, metalness: 0.05, emissive: 0x0a2a0a, emissiveIntensity: 0.1 });
@@ -622,314 +497,160 @@ class HeheFPS {
         const buildingMat = new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.8, metalness: 0.2 });
         const roofMat = new THREE.MeshStandardMaterial({ color: 0x663322, roughness: 0.7, metalness: 0.3 });
         const wallMat2 = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.85, metalness: 0.15 });
-        const interiorFloorMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.95, metalness: 0.05 });
 
-        // ========= 3D TREES (120 Procedural) =========
+        // ========= 3D TREES (100+ Procedural) =========
         const treeCount = 120;
-        const occupiedPositions = [];
+        const occupiedPositions = []; // Track positions to avoid overlap
 
         for (let i = 0; i < treeCount; i++) {
             let x, z, tooClose;
+            // Find a position that doesn't overlap with existing objects
             let attempts = 0;
             do {
-                x = (Math.random()-0.5)*map.size*1.7;
-                z = (Math.random()-0.5)*map.size*1.7;
+                x = (Math.random() - 0.5) * map.size * 1.7;
+                z = (Math.random() - 0.5) * map.size * 1.7;
                 tooClose = false;
                 for (const pos of occupiedPositions) {
-                    if (Math.sqrt((x-pos.x)**2+(z-pos.z)**2) < 5) { tooClose = true; break; }
+                    if (Math.sqrt((x - pos.x) ** 2 + (z - pos.z) ** 2) < 5) {
+                        tooClose = true; break;
+                    }
                 }
                 attempts++;
             } while (tooClose && attempts < 20);
 
             occupiedPositions.push({ x, z });
+
             const treeGroup = new THREE.Group();
 
-            const trunkHeight = 3+Math.random()*4;
-            const trunkRadius = 0.2+Math.random()*0.3;
-            const trunkGeo = new THREE.CylinderGeometry(Math.max(0.1,trunkRadius*0.6), Math.max(0.1,trunkRadius), trunkHeight, 6);
+            // Trunk (CylinderGeometry)
+            const trunkHeight = 3 + Math.random() * 4;
+            const trunkRadius = 0.2 + Math.random() * 0.3;
+            const trunkGeo = new THREE.CylinderGeometry(
+                Math.max(0.1, trunkRadius * 0.6), Math.max(0.1, trunkRadius), trunkHeight, 6
+            );
             const trunk = new THREE.Mesh(trunkGeo, treeTrunkMat);
-            trunk.position.y = trunkHeight/2; trunk.castShadow = true;
+            trunk.position.y = trunkHeight / 2;
+            trunk.castShadow = true;
             treeGroup.add(trunk);
 
-            const leavesMat = Math.random()>0.5 ? treeLeavesMat : treeLeavesMat2;
-            const layers = 2+Math.floor(Math.random()*2);
+            // Leaves (ConeGeometry - 2-3 layers for fullness)
+            const leavesMat = Math.random() > 0.5 ? treeLeavesMat : treeLeavesMat2;
+            const layers = 2 + Math.floor(Math.random() * 2);
             for (let l = 0; l < layers; l++) {
-                const leafRadius = (2.5-l*0.5)*(0.7+Math.random()*0.5);
-                const leafHeight = 2.5-l*0.3;
-                const leafGeo = new THREE.ConeGeometry(Math.max(0.5,leafRadius), Math.max(0.5,leafHeight), 7);
+                const leafRadius = (2.5 - l * 0.5) * (0.7 + Math.random() * 0.5);
+                const leafHeight = 2.5 - l * 0.3;
+                const leafGeo = new THREE.ConeGeometry(Math.max(0.5, leafRadius), Math.max(0.5, leafHeight), 7);
                 const leaf = new THREE.Mesh(leafGeo, leavesMat);
-                leaf.position.y = trunkHeight+l*1.2; leaf.castShadow = true;
+                leaf.position.y = trunkHeight + l * 1.2;
+                leaf.castShadow = true;
                 treeGroup.add(leaf);
             }
 
             treeGroup.position.set(x, 0, z);
             this.scene.add(treeGroup);
 
+            // Add trunk as obstacle with collision radius
             const collisionObs = new THREE.Object3D();
-            collisionObs.position.set(x, trunkHeight/2, z);
-            collisionObs.userData = { isObstacle: true, collisionRadius: Math.max(1.0, trunkRadius*3) };
+            collisionObs.position.set(x, trunkHeight / 2, z);
+            collisionObs.userData = { isObstacle: true, collisionRadius: Math.max(1.0, trunkRadius * 3) };
             this.obstacles.push(collisionObs);
         }
 
-        // ========= ENTERABLE BUILDINGS WITH LOOT (v5.0) =========
+        // ========= 3D BUILDINGS (Simple Box-based) =========
         const buildingConfigs = [
-            { x:-50, z:-50, w:12, h:6, d:10, roofH:3, doorSide:'front', loot:true },
-            { x:40, z:-60, w:10, h:5, d:12, roofH:2.5, doorSide:'front', loot:true },
-            { x:-60, z:40, w:14, h:7, d:10, roofH:3, doorSide:'right', loot:true },
-            { x:55, z:50, w:10, h:8, d:10, roofH:3.5, doorSide:'front', loot:true },
-            { x:0, z:-80, w:16, h:5, d:10, roofH:2, doorSide:'front', loot:true },
-            { x:-80, z:0, w:8, h:6, d:8, roofH:2, doorSide:'front', loot:false },
-            { x:80, z:-20, w:10, h:8, d:10, roofH:3, doorSide:'left', loot:true },
-            { x:-30, z:80, w:10, h:5, d:8, roofH:2, doorSide:'front', loot:false },
-            { x:30, z:70, w:8, h:10, d:8, roofH:2, doorSide:'front', loot:true },
-            { x:-90, z:-70, w:10, h:6, d:10, roofH:2.5, doorSide:'front', loot:true },
-            { x:90, z:70, w:10, h:7, d:12, roofH:2.5, doorSide:'right', loot:true },
-            { x:-20, z:-40, w:8, h:4, d:8, roofH:1.5, doorSide:'front', loot:false },
-            { x:60, z:-10, w:6, h:8, d:6, roofH:2, doorSide:'front', loot:true },
-            { x:-70, z:60, w:12, h:5, d:8, roofH:2, doorSide:'front', loot:true },
-            { x:10, z:50, w:8, h:6, d:10, roofH:2.5, doorSide:'left', loot:true },
+            { x: -50, z: -50, w: 10, h: 8, d: 8, roofH: 3 },
+            { x: 40, z: -60, w: 8, h: 6, d: 12, roofH: 2.5 },
+            { x: -60, z: 40, w: 12, h: 7, d: 10, roofH: 3 },
+            { x: 55, z: 50, w: 9, h: 10, d: 9, roofH: 3.5 },
+            { x: 0, z: -80, w: 14, h: 5, d: 8, roofH: 2 },
+            { x: -80, z: 0, w: 7, h: 6, d: 7, roofH: 2 },
+            { x: 80, z: -20, w: 10, h: 9, d: 10, roofH: 3 },
+            { x: -30, z: 80, w: 8, h: 5, d: 6, roofH: 2 },
+            { x: 30, z: 70, w: 6, h: 12, d: 6, roofH: 2 },
+            { x: -90, z: -70, w: 10, h: 6, d: 10, roofH: 2.5 },
+            { x: 90, z: 70, w: 8, h: 7, d: 12, roofH: 2.5 },
+            { x: -20, z: -40, w: 6, h: 4, d: 6, roofH: 1.5 },
+            { x: 60, z: -10, w: 5, h: 8, d: 5, roofH: 2 },
+            { x: -70, z: 60, w: 11, h: 5, d: 7, roofH: 2 },
+            { x: 10, z: 50, w: 7, h: 6, d: 9, roofH: 2.5 },
         ];
 
         buildingConfigs.forEach(cfg => {
-            const bGroup = new THREE.Group();
-            const wallThickness = 0.4;
-            const doorWidth = 1.8;
-            const doorHeight = 3;
+            const buildingGroup = new THREE.Group();
 
-            // Floor inside
-            const floorGeo = new THREE.BoxGeometry(cfg.w-0.5, 0.1, cfg.d-0.5);
-            const floor = new THREE.Mesh(floorGeo, interiorFloorMat);
-            floor.position.y = 0.05;
-            floor.receiveShadow = true;
-            bGroup.add(floor);
+            // Main body
+            const bodyGeo = new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d);
+            const body = new THREE.Mesh(bodyGeo, buildingMat);
+            body.position.y = cfg.h / 2;
+            body.castShadow = true; body.receiveShadow = true;
+            buildingGroup.add(body);
 
-            // Build walls with door opening
-            const buildWall = (ww, wh, wd, wx, wy, wz) => {
-                const geo = new THREE.BoxGeometry(ww, wh, wd);
-                const mesh = new THREE.Mesh(geo, buildingMat);
-                mesh.position.set(wx, wy, wz);
-                mesh.castShadow = true; mesh.receiveShadow = true;
-                bGroup.add(mesh);
-            };
-
-            // Front wall (z+)
-            if (cfg.doorSide === 'front') {
-                const sideW = (cfg.w - doorWidth) / 2;
-                buildWall(sideW, cfg.h, wallThickness, -(sideW/2 + doorWidth/2), cfg.h/2, cfg.d/2);
-                buildWall(sideW, cfg.h, wallThickness, sideW/2 + doorWidth/2, cfg.h/2, cfg.d/2);
-                buildWall(doorWidth, cfg.h - doorHeight, wallThickness, 0, doorHeight + (cfg.h-doorHeight)/2, cfg.d/2);
-            } else {
-                buildWall(cfg.w, cfg.h, wallThickness, 0, cfg.h/2, cfg.d/2);
-            }
-
-            // Back wall
-            buildWall(cfg.w, cfg.h, wallThickness, 0, cfg.h/2, -cfg.d/2);
-
-            // Left wall
-            if (cfg.doorSide === 'left') {
-                const sideH = (cfg.d - doorWidth) / 2;
-                buildWall(wallThickness, cfg.h, sideH, -cfg.w/2, cfg.h/2, -(sideH/2 + doorWidth/2));
-                buildWall(wallThickness, cfg.h, sideH, -cfg.w/2, cfg.h/2, sideH/2 + doorWidth/2);
-            } else {
-                buildWall(wallThickness, cfg.h, cfg.d, -cfg.w/2, cfg.h/2, 0);
-            }
-
-            // Right wall
-            if (cfg.doorSide === 'right') {
-                const sideH2 = (cfg.d - doorWidth) / 2;
-                buildWall(wallThickness, cfg.h, sideH2, cfg.w/2, cfg.h/2, -(sideH2/2 + doorWidth/2));
-                buildWall(wallThickness, cfg.h, sideH2, cfg.w/2, cfg.h/2, sideH2/2 + doorWidth/2);
-            } else {
-                buildWall(wallThickness, cfg.h, cfg.d, cfg.w/2, cfg.h/2, 0);
-            }
-
-            // Roof
+            // Roof (pyramid-like using ConeGeometry or flat top)
             if (Math.random() > 0.3) {
-                const roofGeo = new THREE.ConeGeometry(Math.max(0.5, Math.max(cfg.w, cfg.d)*0.7), cfg.roofH, 4);
+                // Pointed roof
+                const roofGeo = new THREE.ConeGeometry(Math.max(0.5, Math.max(cfg.w, cfg.d) * 0.7), cfg.roofH, 4);
                 const roof = new THREE.Mesh(roofGeo, roofMat);
-                roof.position.y = cfg.h + cfg.roofH/2; roof.rotation.y = Math.PI/4;
+                roof.position.y = cfg.h + cfg.roofH / 2;
+                roof.rotation.y = Math.PI / 4;
                 roof.castShadow = true;
-                bGroup.add(roof);
+                buildingGroup.add(roof);
             } else {
-                const flatRoofGeo = new THREE.BoxGeometry(cfg.w+0.5, 0.3, cfg.d+0.5);
+                // Flat roof with border
+                const flatRoofGeo = new THREE.BoxGeometry(cfg.w + 0.5, 0.3, cfg.d + 0.5);
                 const flatRoof = new THREE.Mesh(flatRoofGeo, roofMat);
-                flatRoof.position.y = cfg.h + 0.15; flatRoof.castShadow = true;
-                bGroup.add(flatRoof);
+                flatRoof.position.y = cfg.h + 0.15;
+                flatRoof.castShadow = true;
+                buildingGroup.add(flatRoof);
             }
 
-            // Windows
-            const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd66, transparent: true, opacity: 0.4 });
-            for (let wy = 2.5; wy < cfg.h - 1; wy += 2.5) {
-                for (let wx = -cfg.w/2+2; wx < cfg.w/2-1; wx += 3) {
-                    if (Math.random() > 0.5) {
+            // Windows (small emissive boxes)
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd66, transparent: true, opacity: 0.6 });
+            for (let wy = 2; wy < cfg.h - 1; wy += 2.5) {
+                for (let wx = -cfg.w / 2 + 1.5; wx < cfg.w / 2 - 1; wx += 2.5) {
+                    if (Math.random() > 0.4) {
                         const winGeo = new THREE.BoxGeometry(0.8, 1.0, 0.1);
                         const win = new THREE.Mesh(winGeo, windowMat);
-                        win.position.set(wx, wy, cfg.d/2+0.06);
-                        bGroup.add(win);
-                        const win2 = win.clone(); win2.position.z = -cfg.d/2-0.06;
-                        bGroup.add(win2);
+                        win.position.set(wx, wy, cfg.d / 2 + 0.06);
+                        buildingGroup.add(win);
+                        // Window on back wall
+                        const win2 = win.clone();
+                        win2.position.z = -cfg.d / 2 - 0.06;
+                        buildingGroup.add(win2);
                     }
                 }
             }
 
-            bGroup.position.set(cfg.x, 0, cfg.z);
-            this.scene.add(bGroup);
+            // Door
+            const doorGeo = new THREE.BoxGeometry(1.2, 2.0, 0.1);
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9, metalness: 0.1 });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            door.position.set(0, 1.0, cfg.d / 2 + 0.06);
+            buildingGroup.add(door);
 
-            // Building collision (use 4 wall positions as collision boxes)
-            const colRadius = Math.max(cfg.w, cfg.d) * 0.55;
+            buildingGroup.position.set(cfg.x, 0, cfg.z);
+            this.scene.add(buildingGroup);
+
+            // Add building as obstacle with large collision radius
             const collisionObs = new THREE.Object3D();
-            collisionObs.position.set(cfg.x, cfg.h/2, cfg.z);
-            collisionObs.userData = { isObstacle: true, collisionRadius: colRadius, isBuilding: true,
-                doorSide: cfg.doorSide, doorWidth: doorWidth, buildingW: cfg.w, buildingD: cfg.d };
+            collisionObs.position.set(cfg.x, cfg.h / 2, cfg.z);
+            collisionObs.userData = { isObstacle: true, collisionRadius: Math.max(cfg.w, cfg.d) * 0.6 };
             this.obstacles.push(collisionObs);
             occupiedPositions.push({ x: cfg.x, z: cfg.z });
-
-            // Store interior position for loot spawning
-            if (cfg.loot) {
-                this.houseInteriors.push({
-                    x: cfg.x, z: cfg.z, w: cfg.w - 2, d: cfg.d - 2,
-                    hasLoot: false, lootItems: []
-                });
-            }
         });
 
-        // ========= WRECKED CARS (v5.0) =========
-        const carMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6, metalness: 0.5 });
-        const rustMat = new THREE.MeshStandardMaterial({ color: 0x664433, roughness: 0.9, metalness: 0.3 });
-        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.2 });
-
-        const wreckPositions = [
-            { x: -30, z: -20, ry: 0.3 }, { x: 25, z: 30, ry: 1.5 },
-            { x: -70, z: 20, ry: 0.8 }, { x: 60, z: -40, ry: 2.1 },
-            { x: 10, z: -60, ry: 0.5 }, { x: -40, z: 60, ry: 1.2 },
-        ];
-
-        wreckPositions.forEach(wp => {
-            const carGroup = new THREE.Group();
-            // Body
-            const bodyGeo = new THREE.BoxGeometry(2.2, 1.0, 4.0);
-            const body = new THREE.Mesh(bodyGeo, Math.random() > 0.5 ? carMat : rustMat);
-            body.position.y = 0.7; body.castShadow = true;
-            carGroup.add(body);
-            // Cabin
-            const cabinGeo = new THREE.BoxGeometry(1.8, 0.8, 2.0);
-            const cabin = new THREE.Mesh(cabinGeo, rustMat);
-            cabin.position.set(0, 1.4, -0.3); cabin.castShadow = true;
-            carGroup.add(cabin);
-            // Wheels
-            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 8);
-            [[-1.1, 0.35, 1.2], [1.1, 0.35, 1.2], [-1.1, 0.35, -1.2], [1.1, 0.35, -1.2]].forEach(wp2 => {
-                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-                wheel.rotation.z = Math.PI/2;
-                wheel.position.set(...wp2);
-                carGroup.add(wheel);
-            });
-            carGroup.position.set(wp.x, 0, wp.z);
-            carGroup.rotation.y = wp.ry;
-            this.scene.add(carGroup);
-
-            const colObs = new THREE.Object3D();
-            colObs.position.set(wp.x, 0.7, wp.z);
-            colObs.userData = { isObstacle: true, collisionRadius: 2.5 };
-            this.obstacles.push(colObs);
-        });
-
-        // ========= DRIVABLE CAR (v5.0) =========
-        const driveCarGroup = new THREE.Group();
-        const driveCarBody = new THREE.MeshStandardMaterial({ color: 0x228822, roughness: 0.4, metalness: 0.6 });
-        const driveCarPaint = new THREE.MeshStandardMaterial({ color: 0x33bb33, roughness: 0.3, metalness: 0.7, emissive: 0x115511, emissiveIntensity: 0.1 });
-
-        // Body
-        const dcBodyGeo = new THREE.BoxGeometry(2.2, 1.0, 4.5);
-        const dcBody = new THREE.Mesh(dcBodyGeo, driveCarBody);
-        dcBody.position.y = 0.7; dcBody.castShadow = true;
-        driveCarGroup.add(dcBody);
-
-        // Hood
-        const dcHood = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.15, 1.5), driveCarPaint);
-        dcHood.position.set(0, 1.25, 1.0); dcHood.castShadow = true;
-        driveCarGroup.add(dcHood);
-
-        // Cabin
-        const dcCabin = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.9, 2.0), new THREE.MeshStandardMaterial({ color: 0x335533, roughness: 0.5, metalness: 0.3 }));
-        dcCabin.position.set(0, 1.55, -0.4); dcCabin.castShadow = true;
-        driveCarGroup.add(dcCabin);
-
-        // Windshield
-        const dcWind = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 0.05), new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.4 }));
-        dcWind.position.set(0, 1.5, 0.6);
-        driveCarGroup.add(dcWind);
-
-        // Wheels
-        const dcWheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.25, 10);
-        [[-1.15, 0.38, 1.4], [1.15, 0.38, 1.4], [-1.15, 0.38, -1.4], [1.15, 0.38, -1.4]].forEach(wp => {
-            const wheel = new THREE.Mesh(dcWheelGeo, wheelMat);
-            wheel.rotation.z = Math.PI/2; wheel.position.set(...wp);
-            driveCarGroup.add(wheel);
-        });
-
-        // Headlights
-        const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
-        [[-0.7, 0.7, 2.28], [0.7, 0.7, 2.28]].forEach(p => {
-            const hl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), hlMat);
-            hl.position.set(...p);
-            driveCarGroup.add(hl);
-        });
-
-        // Taillights
-        const tlMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
-        [[-0.7, 0.7, -2.28], [0.7, 0.7, -2.28]].forEach(p => {
-            const tl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), tlMat);
-            tl.position.set(...p);
-            driveCarGroup.add(tl);
-        });
-
-        // Car headlight
-        const carLight = new THREE.SpotLight(0xffffcc, 1, 30, 0.5, 0.5);
-        carLight.position.set(0, 1, 2.3);
-        carLight.target.position.set(0, 0, 10);
-        driveCarGroup.add(carLight);
-        driveCarGroup.add(carLight.target);
-
-        driveCarGroup.position.set(20, 0, 0);
-        this.scene.add(driveCarGroup);
-        this.carMesh = driveCarGroup;
-        this.carPosition = new THREE.Vector3(20, 0, 0);
-        this.carRotation = 0;
-
-        // ========= TRAIN TRACKS (v5.0) =========
-        const railMat = new THREE.MeshStandardMaterial({ color: 0x666655, roughness: 0.5, metalness: 0.8 });
-        const tieMat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9, metalness: 0.1 });
-        const trackStart = -120, trackEnd = 120;
-
-        // Two rails
-        [-0.7, 0.7].forEach(xOff => {
-            const railGeo = new THREE.BoxGeometry(0.1, 0.15, trackEnd - trackStart);
-            const rail = new THREE.Mesh(railGeo, railMat);
-            rail.position.set(xOff, 0.15, 0);
-            this.scene.add(rail);
-        });
-
-        // Ties
-        for (let z = trackStart; z < trackEnd; z += 2) {
-            const tieGeo = new THREE.BoxGeometry(2, 0.1, 0.3);
-            const tie = new THREE.Mesh(tieGeo, tieMat);
-            tie.position.set(0, 0.08, z);
-            this.scene.add(tie);
-        }
-
-        // ========= BROKEN WALLS & RUINS =========
+        // ========= BROKEN WALLS & RUINS scattered =========
         const ruinPositions = [
-            { x:-40, z:20, w:6, h:3, d:0.5, ry:0.3 },
-            { x:20, z:-30, w:8, h:2.5, d:0.5, ry:1.2 },
-            { x:-10, z:90, w:5, h:4, d:0.5, ry:0.8 },
-            { x:70, z:30, w:7, h:3, d:0.5, ry:2.1 },
-            { x:-90, z:-30, w:4, h:2, d:0.5, ry:0.5 },
+            { x: -40, z: 20, w: 6, h: 3, d: 0.5, ry: 0.3 },
+            { x: 20, z: -30, w: 8, h: 2.5, d: 0.5, ry: 1.2 },
+            { x: -10, z: 90, w: 5, h: 4, d: 0.5, ry: 0.8 },
+            { x: 70, z: 30, w: 7, h: 3, d: 0.5, ry: 2.1 },
+            { x: -90, z: -30, w: 4, h: 2, d: 0.5, ry: 0.5 },
         ];
         ruinPositions.forEach(cfg => {
             const geo = new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d);
             const mesh = new THREE.Mesh(geo, wallMat2);
-            mesh.position.set(cfg.x, cfg.h/2, cfg.z); mesh.rotation.y = cfg.ry;
+            mesh.position.set(cfg.x, cfg.h / 2, cfg.z);
+            mesh.rotation.y = cfg.ry;
             mesh.castShadow = true; mesh.receiveShadow = true;
             mesh.userData = { isObstacle: true, collisionRadius: cfg.w * 0.4 };
             this.scene.add(mesh); this.obstacles.push(mesh);
@@ -938,27 +659,39 @@ class HeheFPS {
         // ========= ROCKS =========
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x555544, roughness: 0.95, metalness: 0.05 });
         for (let i = 0; i < 30; i++) {
-            const size = 0.5+Math.random()*1.5;
+            const size = 0.5 + Math.random() * 1.5;
             const geo = new THREE.DodecahedronGeometry(size, 1);
             const rock = new THREE.Mesh(geo, rockMat);
-            rock.position.set((Math.random()-0.5)*map.size*1.6, size*0.4, (Math.random()-0.5)*map.size*1.6);
-            rock.rotation.set(Math.random()*0.3, Math.random(), Math.random()*0.3);
+            rock.position.set(
+                (Math.random() - 0.5) * map.size * 1.6,
+                size * 0.4,
+                (Math.random() - 0.5) * map.size * 1.6
+            );
+            rock.rotation.set(Math.random() * 0.3, Math.random(), Math.random() * 0.3);
             rock.castShadow = true;
-            rock.userData = { isObstacle: true, collisionRadius: size*0.8 };
+            rock.userData = { isObstacle: true, collisionRadius: size * 0.8 };
             this.scene.add(rock); this.obstacles.push(rock);
         }
 
-        // ========= ATMOSPHERIC LIGHTS =========
+        // ========= ADDITIONAL FOREST LIGHTS =========
+        // Firefly-like point lights scattered
         for (let i = 0; i < 8; i++) {
             const light = new THREE.PointLight(0x44ff44, 0.3, 25);
-            light.position.set((Math.random()-0.5)*map.size, 3+Math.random()*5, (Math.random()-0.5)*map.size);
+            light.position.set(
+                (Math.random() - 0.5) * map.size,
+                3 + Math.random() * 5,
+                (Math.random() - 0.5) * map.size
+            );
             this.scene.add(light);
         }
 
-        [[-50,0,-45],[40,0,-55],[-60,0,45],[55,0,55]].forEach(pos => {
+        // Campfire lights near some buildings
+        [[-50, 0, -45], [40, 0, -55], [-60, 0, 45], [55, 0, 55]].forEach(pos => {
             const fireLight = new THREE.PointLight(0xff6622, 1.2, 20);
             fireLight.position.set(pos[0], 1, pos[2]);
             this.scene.add(fireLight);
+
+            // Fire visual (small emissive mesh)
             const fireGeo = new THREE.ConeGeometry(0.3, 0.8, 6);
             const fireMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.8 });
             const fire = new THREE.Mesh(fireGeo, fireMat);
@@ -967,167 +700,11 @@ class HeheFPS {
         });
     }
 
-    // ==================== CAR SYSTEM (v5.0) ====================
-    enterCar() {
-        if (!this.carMesh || this.isDriving) return;
-        this.isDriving = true;
-        this.carPosition = this.carMesh.position.clone();
-        this.carRotation = this.carMesh.rotation.y;
-        this.carSpeed = 0;
-        console.log('[HeheFPS] Entered car');
+    initWorld() {
+        // Load the default map (selected by user on start screen)
+        this.loadMap(this.selectedMap);
     }
 
-    exitCar() {
-        if (!this.isDriving) return;
-        this.isDriving = false;
-        // Place player next to car
-        const exitPos = this.carMesh.position.clone();
-        exitPos.x += Math.cos(this.carRotation) * 3;
-        exitPos.z += Math.sin(this.carRotation) * 3;
-        exitPos.y = 1.7;
-        this.yawObject.position.copy(exitPos);
-        this.carSpeed = 0;
-        console.log('[HeheFPS] Exited car');
-    }
-
-    updateCar(delta) {
-        if (!this.isDriving || !this.carMesh) return;
-
-        // Steering
-        const steerSpeed = 2.0;
-        const accel = 15;
-        const brakeForce = 20;
-        const friction = 5;
-
-        if (this.moveForward || (this.joystickActive && this.smoothJoystickY < -0.3)) {
-            this.carSpeed = Math.min(this.carMaxSpeed, this.carSpeed + accel * delta);
-        } else if (this.moveBackward || (this.joystickActive && this.smoothJoystickY > 0.3)) {
-            this.carSpeed = Math.max(-this.carMaxSpeed * 0.4, this.carSpeed - brakeForce * delta);
-        } else {
-            // Friction
-            if (this.carSpeed > 0) this.carSpeed = Math.max(0, this.carSpeed - friction * delta);
-            else this.carSpeed = Math.min(0, this.carSpeed + friction * delta);
-        }
-
-        // Turn only when moving
-        if (Math.abs(this.carSpeed) > 0.5) {
-            if (this.moveLeft || (this.joystickActive && this.smoothJoystickX < -0.3)) {
-                this.carRotation += steerSpeed * delta * Math.sign(this.carSpeed);
-            }
-            if (this.moveRight || (this.joystickActive && this.smoothJoystickX > 0.3)) {
-                this.carRotation -= steerSpeed * delta * Math.sign(this.carSpeed);
-            }
-        }
-
-        // Move car
-        const moveX = Math.sin(this.carRotation) * this.carSpeed * delta;
-        const moveZ = Math.cos(this.carRotation) * this.carSpeed * delta;
-
-        const newPos = this.carMesh.position.clone();
-        newPos.x += moveX;
-        newPos.z += moveZ;
-
-        // Boundary
-        const half = this.arenaSize - 3;
-        newPos.x = Math.max(-half, Math.min(half, newPos.x));
-        newPos.z = Math.max(-half, Math.min(half, newPos.z));
-
-        // Obstacle collision for car
-        let canMove = true;
-        for (const obs of this.obstacles) {
-            const colRadius = (obs.userData.collisionRadius || 1.5) + 1.5; // Car is wider
-            const dist = new THREE.Vector2(newPos.x - obs.position.x, newPos.z - obs.position.z).length();
-            if (dist < colRadius) {
-                canMove = false;
-                this.carSpeed *= -0.3; // Bounce back
-                break;
-            }
-        }
-
-        if (canMove) {
-            this.carMesh.position.copy(newPos);
-        }
-
-        this.carMesh.rotation.y = this.carRotation;
-        this.carMesh.position.y = 0;
-
-        // Camera follows car from behind
-        const camDist = 6;
-        const camHeight = 3;
-        const camX = this.carMesh.position.x - Math.sin(this.carRotation) * camDist;
-        const camZ = this.carMesh.position.z - Math.cos(this.carRotation) * camDist;
-        this.yawObject.position.set(camX, camHeight, camZ);
-        this.targetYaw = this.carRotation;
-        this.targetPitch = -0.15;
-
-        // Ram enemies (Car Ramming)
-        if (Math.abs(this.carSpeed) > 5) {
-            for (let i = this.enemies.length - 1; i >= 0; i--) {
-                const enemy = this.enemies[i];
-                const dist = this.carMesh.position.distanceTo(enemy.mesh.position);
-                if (dist < 3) {
-                    const ramDamage = Math.abs(this.carSpeed) * 10;
-                    this.hitEnemy(enemy, ramDamage);
-                    this.carSpeed *= 0.8;
-                }
-            }
-        }
-
-        // Update near car indicator
-        this.nearCar = true; // Always near when driving
-    }
-
-    checkNearCar() {
-        if (!this.carMesh || this.isDriving) return;
-        const playerPos2D = new THREE.Vector2(this.yawObject.position.x, this.yawObject.position.z);
-        const carPos2D = new THREE.Vector2(this.carMesh.position.x, this.carMesh.position.z);
-        const dist = playerPos2D.distanceTo(carPos2D);
-        this.nearCar = dist < 4;
-
-        // Show/hide drive button on mobile
-        if (this.driveBtn) {
-            this.driveBtn.style.display = this.nearCar ? 'flex' : 'none';
-        }
-    }
-
-    // ==================== LOOT SYSTEM (v5.0) ====================
-    spawnHouseLoot() {
-        this.houseInteriors.forEach(interior => {
-            if (interior.hasLoot) return;
-            if (Math.random() > 0.6) return; // 60% chance per wave
-
-            interior.hasLoot = true;
-            const lootTypes = ['ammo', 'health', 'money'];
-            const count = 1 + Math.floor(Math.random() * 3);
-
-            for (let i = 0; i < count; i++) {
-                const type = lootTypes[Math.floor(Math.random() * lootTypes.length)];
-                let geo, mat;
-
-                if (type === 'ammo') {
-                    geo = new THREE.BoxGeometry(0.4, 0.3, 0.4);
-                    mat = new THREE.MeshStandardMaterial({ color: 0x4488ff, emissive: 0x2244aa, emissiveIntensity: 0.3, roughness: 0.3, metalness: 0.8 });
-                } else if (type === 'health') {
-                    geo = new THREE.OctahedronGeometry(0.3, 0);
-                    mat = new THREE.MeshStandardMaterial({ color: 0x44ff44, emissive: 0x22aa22, emissiveIntensity: 0.3, roughness: 0.3, metalness: 0.8 });
-                } else {
-                    geo = new THREE.CylinderGeometry(0.15, 0.15, 0.08, 8);
-                    mat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0xaa8800, emissiveIntensity: 0.4, roughness: 0.2, metalness: 0.9 });
-                }
-
-                const mesh = new THREE.Mesh(geo, mat);
-                const lootX = interior.x + (Math.random() - 0.5) * (interior.w * 0.6);
-                const lootZ = interior.z + (Math.random() - 0.5) * (interior.d * 0.6);
-                mesh.position.set(lootX, 0.4, lootZ);
-                this.scene.add(mesh);
-
-                interior.lootItems.push({ mesh, type, bobOffset: Math.random() * Math.PI * 2 });
-                this.pickups.push({ mesh, type, bobOffset: Math.random() * Math.PI * 2 });
-            }
-        });
-    }
-
-    initWorld() { this.loadMap(this.selectedMap); }
     initPlayer() { this.yawObject.position.set(0, 1.7, this.arenaSize * 0.6); }
 
     // ==================== WEAPONS ====================
@@ -1140,19 +717,19 @@ class HeheFPS {
         const bodyMat = new THREE.MeshStandardMaterial({ color:colors[this.currentWeapon], roughness:0.4, metalness:0.8 });
 
         const w = this.currentWeapon;
-        if (w === 0) {
+        if (w === 0) { // Pistol
             group.add(this.makeBox(0.06,0.12,0.25, bodyMat, 0,0,-0.1));
             group.add(this.makeBox(0.04,0.04,0.2, bodyMat, 0,0.04,-0.25));
             group.add(this.makeBox(0.05,0.1,0.06, bodyMat, 0,-0.08,-0.02, -0.3));
             group.position.set(0.25,-0.2,-0.4);
-        } else if (w === 1) {
+        } else if (w === 1) { // Rifle
             group.add(this.makeBox(0.06,0.1,0.5, bodyMat, 0,0,-0.2));
             group.add(this.makeBox(0.035,0.035,0.3, bodyMat, 0,0.03,-0.5));
             group.add(this.makeBox(0.05,0.08,0.15, bodyMat, 0,-0.02,0.1));
             group.add(this.makeBox(0.04,0.1,0.05, bodyMat, 0,-0.08,-0.05, -0.3));
             group.add(this.makeBox(0.04,0.12,0.04, bodyMat, 0,-0.12,-0.15));
             group.position.set(0.28,-0.22,-0.4);
-        } else if (w === 2) {
+        } else if (w === 2) { // Shotgun
             group.add(this.makeBox(0.07,0.1,0.45, bodyMat, 0,0,-0.18));
             const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.35,6), bodyMat);
             b1.rotation.x=Math.PI/2; b1.position.set(-0.02,0.04,-0.45); group.add(b1);
@@ -1161,38 +738,43 @@ class HeheFPS {
             group.add(this.makeBox(0.05,0.1,0.06, bodyMat, 0,-0.08,0, -0.3));
             group.add(this.makeBox(0.06,0.06,0.1, bodyMat, 0,0,-0.28));
             group.position.set(0.25,-0.22,-0.4);
-        } else if (w === 3) {
+        } else if (w === 3) { // Sniper
             group.add(this.makeBox(0.05,0.08,0.7, bodyMat, 0,0,-0.25));
             group.add(this.makeBox(0.03,0.03,0.4, bodyMat, 0,0.02,-0.65));
+            // Scope
             const scopeMat = new THREE.MeshStandardMaterial({color:0x222222, roughness:0.2, metalness:0.9});
             group.add(this.makeBox(0.04,0.06,0.12, scopeMat, 0,0.08,-0.3));
             const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.04,8), new THREE.MeshBasicMaterial({color:0x44aaff}));
             lens.rotation.x=Math.PI/2; lens.position.set(0,0.08,-0.36); group.add(lens);
             group.add(this.makeBox(0.04,0.12,0.04, bodyMat, 0,-0.1,-0.15));
             group.position.set(0.3,-0.22,-0.4);
-        } else if (w === 4) {
+        } else if (w === 4) { // RPG
             group.add(this.makeBox(0.08,0.1,0.6, bodyMat, 0,0,-0.2));
             const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.5,8), bodyMat);
             tube.rotation.x=Math.PI/2; tube.position.set(0,0.02,-0.5); group.add(tube);
+            // Warhead
             const warhead = new THREE.Mesh(new THREE.ConeGeometry(0.04,0.12,8), new THREE.MeshStandardMaterial({color:0x44aa44, roughness:0.5, metalness:0.5}));
             warhead.rotation.x=Math.PI/2; warhead.position.set(0,0.02,-0.78); group.add(warhead);
             group.add(this.makeBox(0.05,0.1,0.06, bodyMat, 0,-0.08,-0.05, -0.3));
             group.position.set(0.25,-0.22,-0.35);
-        } else {
+        } else { // Minigun
             group.add(this.makeBox(0.08,0.1,0.4, bodyMat, 0,0,-0.15));
+            // Multiple barrels
             for (let i = 0; i < 6; i++) {
-                const angle = (i/6)*Math.PI*2;
+                const angle = (i / 6) * Math.PI * 2;
                 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.015,0.35,6), bodyMat);
                 barrel.rotation.x = Math.PI/2;
                 barrel.position.set(Math.cos(angle)*0.03, 0.03+Math.sin(angle)*0.03, -0.4);
                 group.add(barrel);
             }
             group.add(this.makeBox(0.06,0.15,0.08, bodyMat, 0,-0.1,-0.05));
+            // Ammo belt
             const belt = new THREE.Mesh(new THREE.BoxGeometry(0.03,0.08,0.15), bodyMat);
             belt.position.set(0.05,-0.05,-0.08); group.add(belt);
             group.position.set(0.28,-0.24,-0.4);
         }
 
+        // Muzzle flash
         const flashGeo = new THREE.SphereGeometry(0.1, 8, 8);
         const flashMat = new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:0});
         this.muzzleFlash = new THREE.Mesh(flashGeo, flashMat);
@@ -1212,7 +794,6 @@ class HeheFPS {
 
     switchWeapon(index) {
         if (index === this.currentWeapon || this.isReloading) return;
-        if (!this.ownedWeapons[index]) return; // v4.5: Must own weapon
         this.currentWeapon = index;
         this.createWeaponMesh();
         this.updateHUD();
@@ -1233,8 +814,7 @@ class HeheFPS {
         this.weaponRecoil = 0.05;
         this.pitchObject.rotation.x += 0.01;
 
-        const actualDamage = weapon.damage * this.damageMultiplier;
-
+        // RPG - explosive
         if (weapon.explosive) {
             const dir = new THREE.Vector3(0,0,-1);
             dir.applyQuaternion(this.camera.getWorldQuaternion(new THREE.Quaternion()));
@@ -1255,9 +835,9 @@ class HeheFPS {
 
                 if (hits.length > 0) {
                     const hit = hits[0];
-                    const enemy = this.enemies.find(e => e.mesh === hit.object || (e.mesh.children && e.mesh.children.includes(hit.object)));
+                    const enemy = this.enemies.find(e => e.mesh === hit.object || e.mesh.children.includes(hit.object));
                     if (enemy) {
-                        this.hitEnemy(enemy, actualDamage);
+                        this.hitEnemy(enemy, weapon.damage);
                         this.showHitMarker();
                         this.spawnParticles(hit.point, enemy.type.color, 5);
                     }
@@ -1276,6 +856,7 @@ class HeheFPS {
         if (weapon.ammo <= 0) setTimeout(() => this.reload(), 300);
     }
 
+    // RPG Rocket
     fireRocket(direction) {
         const rocketGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6);
         const rocketMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
@@ -1288,7 +869,7 @@ class HeheFPS {
 
         const rocketData = {
             mesh: rocket, direction: direction.clone(), speed: 40, life: 3,
-            damage: this.weapons[this.currentWeapon].damage * this.damageMultiplier,
+            damage: this.weapons[this.currentWeapon].damage,
             radius: this.weapons[this.currentWeapon].explosionRadius
         };
 
@@ -1297,9 +878,11 @@ class HeheFPS {
             rocket.position.add(direction.clone().multiplyScalar(0.5));
             rocketData.life -= 0.016;
 
+            // Check enemy hit
             for (const enemy of this.enemies) {
                 if (rocket.position.distanceTo(enemy.mesh.position) < 2) {
                     this.createExplosion(rocket.position.clone(), rocketData.radius);
+                    // Damage all enemies in radius
                     this.enemies.forEach(e => {
                         if (rocket.position.distanceTo(e.mesh.position) < rocketData.radius) {
                             this.hitEnemy(e, rocketData.damage * (1 - rocket.position.distanceTo(e.mesh.position) / rocketData.radius));
@@ -1311,6 +894,7 @@ class HeheFPS {
                 }
             }
 
+            // Check wall/obstacle hit
             for (const obs of [...this.walls, ...this.obstacles]) {
                 if (rocket.position.distanceTo(obs.position) < 1.5) {
                     this.createExplosion(rocket.position.clone(), rocketData.radius);
@@ -1324,18 +908,29 @@ class HeheFPS {
         }, 16);
     }
 
+    // Explosion effect
     createExplosion(position, radius) {
-        const flashGeo = new THREE.SphereGeometry(radius*0.5, 16, 16);
+        // Flash sphere
+        const flashGeo = new THREE.SphereGeometry(radius * 0.5, 16, 16);
         const flashMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.8 });
         const flash = new THREE.Mesh(flashGeo, flashMat);
-        flash.position.copy(position); this.scene.add(flash);
+        flash.position.copy(position);
+        this.scene.add(flash);
+
+        // Particles
         this.spawnParticles(position, 0xff4400, 25);
         this.spawnParticles(position, 0xffaa00, 15);
+
+        // Damage player if in radius
         if (position.distanceTo(this.yawObject.position) < radius) {
             this.takeDamage(30 * (1 - position.distanceTo(this.yawObject.position) / radius));
         }
+
         this.playSound('explosion');
-        flash.scale.setScalar(0.1);
+
+        // Animate explosion
+        const startScale = 0.1;
+        flash.scale.setScalar(startScale);
         const explosionAnim = setInterval(() => {
             flash.scale.multiplyScalar(1.1);
             flashMat.opacity *= 0.92;
@@ -1360,6 +955,7 @@ class HeheFPS {
 
     hitEnemy(enemy, damage) {
         enemy.health -= damage;
+        // Flash all child meshes white for hit feedback
         const childMeshes = [];
         enemy.mesh.traverse(child => { if (child.isMesh) childMeshes.push(child); });
         const origColors = childMeshes.map(m => m.material.color.getHex());
@@ -1378,27 +974,15 @@ class HeheFPS {
         this.kills++;
         this.enemiesRemaining--;
 
-        // Money reward (v4.5)
-        const moneyReward = enemy.type.money || 10;
-        this.money += moneyReward;
-
-        // Kill streak check (v4.5)
-        this.checkKillStreak();
-
-        // Death animation (v5.0) - fall over then fade
-        this.dyingEnemies.push({
-            mesh: enemy.mesh,
-            fallProgress: 0,
-            fadeProgress: 0,
-            phase: 'falling' // 'falling' then 'fading'
-        });
-
+        this.spawnParticles(enemy.mesh.position, enemy.type.color, 20);
+        this.scene.remove(enemy.mesh);
         const idx = this.enemies.indexOf(enemy);
         if (idx > -1) this.enemies.splice(idx, 1);
 
         if (enemy.isBoss) {
             this.currentBoss = null;
             document.getElementById('boss-bar').classList.add('hidden');
+            // Boss death explosion
             this.createExplosion(enemy.mesh.position.clone(), 5);
             this.score += 1000;
         }
@@ -1410,73 +994,62 @@ class HeheFPS {
         if (this.enemiesRemaining <= 0 && this.enemies.length === 0) this.nextWave();
     }
 
-    updateDyingEnemies(delta) {
-        this.dyingEnemies = this.dyingEnemies.filter(d => {
-            if (d.phase === 'falling') {
-                d.fallProgress += delta * 3;
-                d.mesh.rotation.x = Math.min(Math.PI/2, d.fallProgress * (Math.PI/2));
-                d.mesh.position.y = Math.max(0, d.mesh.position.y - delta * 2);
-                if (d.fallProgress >= 1) d.phase = 'fading';
-                return true;
-            } else {
-                d.fadeProgress += delta;
-                d.mesh.traverse(child => {
-                    if (child.isMesh && child.material) {
-                        child.material.transparent = true;
-                        child.material.opacity = Math.max(0, 1 - d.fadeProgress);
-                    }
-                });
-                if (d.fadeProgress >= 1) {
-                    this.scene.remove(d.mesh);
-                    return false;
-                }
-                return true;
-            }
-        });
-    }
-
     // ==================== ENEMIES ====================
     createHumanoidEnemy(color, type, size) {
         const group = new THREE.Group();
+
+        // Colors
         const bodyColor = color;
         const clothColor = new THREE.Color(color).multiplyScalar(0.5).getHex();
-        const skinColor = type === 'basic' ? 0x66aa66 : (type === 'fast' ? 0xaa6666 : 0x8888aa);
+        const skinColor = 0xddbb99;
 
+        // Materials
         const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0.4, emissive: bodyColor, emissiveIntensity: 0.2 });
         const clothMat = new THREE.MeshStandardMaterial({ color: clothColor, roughness: 0.8, metalness: 0.1 });
         const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.7, metalness: 0.1 });
 
-        // HEAD
+        // === HEAD ===
         const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
         const head = new THREE.Mesh(headGeo, skinMat);
-        head.position.y = 1.85; head.castShadow = true;
+        head.position.y = 1.85;
+        head.castShadow = true;
         group.add(head);
 
-        // Eyes
-        const eyeMat = new THREE.MeshBasicMaterial({ color: type === 'boss' ? 0xff0000 : 0xffffff });
-        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        [[-0.12, 1.9, -0.26], [0.12, 1.9, -0.26]].forEach(p => {
-            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), eyeMat);
-            eye.position.set(...p); group.add(eye);
-            const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), pupilMat);
-            pupil.position.set(p[0], p[1], p[2]-0.04); group.add(pupil);
-        });
+        // Eyes on head
+        const eyeGeo = new THREE.SphereGeometry(0.07, 6, 6);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye1.position.set(-0.12, 1.9, -0.26);
+        group.add(eye1);
+        const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye2.position.set(0.12, 1.9, -0.26);
+        group.add(eye2);
 
-        // TORSO
-        const torsoW = type === 'tank' ? 1.1 : 0.8;
-        const torsoH = type === 'tank' ? 1.4 : 1.2;
-        const torsoGeo = new THREE.BoxGeometry(torsoW, torsoH, 0.6);
+        // Pupils
+        const pupilGeo = new THREE.SphereGeometry(0.04, 6, 6);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: type === 'boss' ? 0xff0000 : 0xff0000 });
+        const p1 = new THREE.Mesh(pupilGeo, pupilMat);
+        p1.position.set(-0.12, 1.9, -0.3);
+        group.add(p1);
+        const p2 = new THREE.Mesh(pupilGeo, pupilMat);
+        p2.position.set(0.12, 1.9, -0.3);
+        group.add(p2);
+
+        // === TORSO (ကိုယ်ထည်) ===
+        const torsoGeo = new THREE.BoxGeometry(0.8, 1.2, 0.6);
         const torso = new THREE.Mesh(torsoGeo, clothMat);
-        torso.position.y = 1.15; torso.castShadow = true;
+        torso.position.y = 1.15;
+        torso.castShadow = true;
         group.add(torso);
 
-        // Belt
-        const beltGeo = new THREE.BoxGeometry(torsoW+0.02, 0.1, 0.62);
+        // Belt/waist detail
+        const beltGeo = new THREE.BoxGeometry(0.82, 0.1, 0.62);
         const beltMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5, metalness: 0.3 });
         const belt = new THREE.Mesh(beltGeo, beltMat);
-        belt.position.y = 0.55; group.add(belt);
+        belt.position.y = 0.6;
+        group.add(belt);
 
-        // ARMS - zombies have arms forward
+        // === LEFT ARM ===
         const armGeo = new THREE.BoxGeometry(0.25, 1.0, 0.25);
         const leftArm = new THREE.Mesh(armGeo, bodyMat);
         leftArm.position.set(-0.55, 1.15, 0);
@@ -1484,79 +1057,82 @@ class HeheFPS {
         leftArm.userData.isArm = true;
         group.add(leftArm);
 
+        // Left hand
+        const handGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+        const leftHand = new THREE.Mesh(handGeo, skinMat);
+        leftHand.position.set(-0.55, 0.58, 0);
+        group.add(leftHand);
+
+        // === RIGHT ARM ===
         const rightArm = new THREE.Mesh(armGeo.clone(), bodyMat);
         rightArm.position.set(0.55, 1.15, 0);
         rightArm.castShadow = true;
         rightArm.userData.isArm = true;
         group.add(rightArm);
 
-        // Hands
-        const handGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
-        [[-0.55, 0.58, 0], [0.55, 0.58, 0]].forEach(p => {
-            const hand = new THREE.Mesh(handGeo, skinMat);
-            hand.position.set(...p); group.add(hand);
-        });
+        // Right hand
+        const rightHand = new THREE.Mesh(handGeo.clone(), skinMat);
+        rightHand.position.set(0.55, 0.58, 0);
+        group.add(rightHand);
 
-        // LEGS
-        const legW = type === 'tank' ? 0.35 : 0.3;
-        const legGeo = new THREE.BoxGeometry(legW, 1.0, 0.3);
+        // === LEFT LEG ===
+        const legGeo = new THREE.BoxGeometry(0.3, 1.0, 0.3);
         const leftLeg = new THREE.Mesh(legGeo, clothMat);
         leftLeg.position.set(-0.22, 0.1, 0);
         leftLeg.castShadow = true;
         leftLeg.userData.isLeg = true;
         group.add(leftLeg);
 
+        // Left foot
+        const footGeo = new THREE.BoxGeometry(0.3, 0.12, 0.4);
+        const leftFoot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 }));
+        leftFoot.position.set(-0.22, -0.44, -0.05);
+        group.add(leftFoot);
+
+        // === RIGHT LEG ===
         const rightLeg = new THREE.Mesh(legGeo.clone(), clothMat);
         rightLeg.position.set(0.22, 0.1, 0);
         rightLeg.castShadow = true;
         rightLeg.userData.isLeg = true;
         group.add(rightLeg);
 
-        // Feet
-        const footGeo = new THREE.BoxGeometry(0.3, 0.12, 0.4);
-        const footMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 });
-        [[-0.22, -0.44, -0.05], [0.22, -0.44, -0.05]].forEach(p => {
-            const foot = new THREE.Mesh(footGeo, footMat);
-            foot.position.set(...p); group.add(foot);
-        });
+        // Right foot
+        const rightFoot = new THREE.Mesh(footGeo.clone(), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 }));
+        rightFoot.position.set(0.22, -0.44, -0.05);
+        group.add(rightFoot);
 
-        // BOSS EXTRAS
+        // === BOSS EXTRAS ===
         if (type === 'boss') {
+            // Crown / Horns
             const hornMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xffaa00, emissiveIntensity: 0.3, roughness: 0.3, metalness: 0.8 });
-            [[-0.2, 2.25, 0], [0.2, 2.25, 0]].forEach(p => {
-                const horn = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 6), hornMat);
-                horn.position.set(...p); group.add(horn);
-            });
+            const h1 = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 6), hornMat);
+            h1.position.set(-0.2, 2.25, 0);
+            group.add(h1);
+            const h2 = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 6), hornMat);
+            h2.position.set(0.2, 2.25, 0);
+            group.add(h2);
+            // Crown ring
             const crown = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 8, 16), hornMat);
-            crown.position.set(0, 2.15, 0); crown.rotation.x = Math.PI/2; group.add(crown);
+            crown.position.set(0, 2.15, 0);
+            crown.rotation.x = Math.PI / 2;
+            group.add(crown);
 
+            // Shoulder pads
+            const padGeo = new THREE.BoxGeometry(0.35, 0.2, 0.35);
             const padMat = new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0xff4400, emissiveIntensity: 0.2, roughness: 0.4, metalness: 0.6 });
-            [[-0.6, 1.65, 0], [0.6, 1.65, 0]].forEach(p => {
-                const pad = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, 0.35), padMat);
-                pad.position.set(...p); group.add(pad);
-            });
-
-            // Boss aura glow
-            const auraGeo = new THREE.SphereGeometry(2, 16, 16);
-            const auraMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.08, side: THREE.BackSide });
-            const aura = new THREE.Mesh(auraGeo, auraMat);
-            aura.position.y = 1;
-            group.add(aura);
+            const lPad = new THREE.Mesh(padGeo, padMat);
+            lPad.position.set(-0.6, 1.65, 0);
+            group.add(lPad);
+            const rPad = new THREE.Mesh(padGeo.clone(), padMat);
+            rPad.position.set(0.6, 1.65, 0);
+            group.add(rPad);
         }
 
-        // Fast enemy: hunched posture
-        if (type === 'fast') {
-            head.position.y = 1.6;
-            head.position.z = -0.15;
-            torso.position.y = 0.95;
-            leftArm.position.y = 0.95;
-            rightArm.position.y = 0.95;
-        }
-
+        // Scale the entire group by size
         group.scale.setScalar(size);
+
         return group;
     }
-
     spawnEnemy(type = 'basic') {
         const enemyType = this.enemyTypes[type];
         if (!enemyType) return;
@@ -1565,10 +1141,10 @@ class HeheFPS {
         const mesh = this.createHumanoidEnemy(enemyType.color, type, size);
 
         let spawnPos;
-        const maxSpawnDist = Math.min(40, this.arenaSize*0.5);
+        const maxSpawnDist = Math.min(40, this.arenaSize * 0.5);
         do {
-            const angle = Math.random()*Math.PI*2;
-            const dist = 15+Math.random()*maxSpawnDist;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 15 + Math.random() * maxSpawnDist;
             spawnPos = new THREE.Vector3(Math.cos(angle)*dist, 0, Math.sin(angle)*dist);
         } while (spawnPos.distanceTo(this.yawObject.position) < 12);
 
@@ -1606,6 +1182,7 @@ class HeheFPS {
 
             enemy.mesh.lookAt(new THREE.Vector3(this.yawObject.position.x, enemy.mesh.position.y, this.yawObject.position.z));
 
+            // Boss special movement patterns
             let moveSpeed = enemy.speed;
             if (enemy.isBoss) {
                 this.updateBossAI(enemy, delta);
@@ -1618,6 +1195,7 @@ class HeheFPS {
             newPos.x = Math.max(-half, Math.min(half, newPos.x));
             newPos.z = Math.max(-half, Math.min(half, newPos.z));
 
+            // Simple obstacle avoidance
             for (const obs of this.obstacles) {
                 const colRadius = obs.userData.collisionRadius || 1.5;
                 const dist = newPos.distanceTo(obs.position);
@@ -1631,7 +1209,7 @@ class HeheFPS {
             enemy.mesh.position.copy(newPos);
             enemy.mesh.position.y = Math.sin(Date.now()*0.005 + enemy.mesh.id) * 0.08;
 
-            // Walking animation
+            // Humanoid walking animation (animate arms & legs)
             const walkCycle = Date.now() * 0.008 * moveSpeed;
             enemy.mesh.children.forEach(child => {
                 if (child.userData.isLeg) {
@@ -1640,7 +1218,7 @@ class HeheFPS {
                 }
                 if (child.userData.isArm) {
                     const offset = child.position.x > 0 ? Math.PI : 0;
-                    child.rotation.x = Math.sin(walkCycle + offset) * 0.3 - 0.5; // Arms forward for zombie look
+                    child.rotation.x = Math.sin(walkCycle + offset) * 0.3;
                 }
             });
 
@@ -1659,14 +1237,24 @@ class HeheFPS {
     // ==================== BOSS AI ====================
     updateBossAI(boss, delta) {
         this.bossAttackTimer += delta;
+
+        // Phase transitions based on health
         const healthPct = boss.health / boss.maxHealth;
         if (healthPct < 0.3 && this.bossPhase < 3) {
-            this.bossPhase = 3; boss.speed = 4; boss.damage = 40; boss.attackCooldown = 600;
-            this.updateBossBar(); this.playSound('bossRoar');
+            this.bossPhase = 3;
+            boss.speed = 4; boss.damage = 40; boss.attackCooldown = 600;
+            boss.mesh.material.emissiveIntensity = 1.0;
+            this.updateBossBar();
+            this.playSound('bossRoar');
         } else if (healthPct < 0.6 && this.bossPhase < 2) {
-            this.bossPhase = 2; boss.speed = 3; boss.damage = 35; boss.attackCooldown = 700;
-            this.updateBossBar(); this.playSound('bossRoar');
+            this.bossPhase = 2;
+            boss.speed = 3; boss.damage = 35; boss.attackCooldown = 700;
+            boss.mesh.material.emissiveIntensity = 0.5;
+            this.updateBossBar();
+            this.playSound('bossRoar');
         }
+
+        // Ranged attack - shoot projectile
         if (this.bossAttackTimer > 2.0) {
             this.bossAttackTimer = 0;
             this.bossShootProjectile(boss);
@@ -1680,15 +1268,17 @@ class HeheFPS {
 
         const projGeo = new THREE.SphereGeometry(0.3, 8, 8);
         const projColor = this.bossPhase >= 3 ? 0xff0000 : (this.bossPhase >= 2 ? 0xff4400 : 0xff8800);
-        const proj = new THREE.Mesh(projGeo, new THREE.MeshBasicMaterial({ color: projColor }));
+        const projMat = new THREE.MeshBasicMaterial({ color: projColor });
+        const proj = new THREE.Mesh(projGeo, projMat);
         proj.position.copy(boss.mesh.position);
         proj.position.y += 1;
         this.scene.add(proj);
 
+        // Glow
         const glow = new THREE.PointLight(projColor, 1, 5);
         proj.add(glow);
 
-        this.bossProjectiles.push({ mesh: proj, direction: dir, speed: 15, life: 4, damage: 15+this.bossPhase*5 });
+        this.bossProjectiles.push({ mesh: proj, direction: dir, speed: 15, life: 4, damage: 15 + this.bossPhase * 5 });
         this.playSound('bossShoot');
     }
 
@@ -1696,16 +1286,24 @@ class HeheFPS {
         this.bossProjectiles = this.bossProjectiles.filter(p => {
             p.mesh.position.add(p.direction.clone().multiplyScalar(p.speed * delta));
             p.life -= delta;
+
+            // Hit player
             if (p.mesh.position.distanceTo(this.yawObject.position) < 1.5) {
-                this.takeDamage(p.damage); this.spawnParticles(p.mesh.position, 0xff4400, 8);
-                this.scene.remove(p.mesh); return false;
+                this.takeDamage(p.damage);
+                this.spawnParticles(p.mesh.position, 0xff4400, 8);
+                this.scene.remove(p.mesh);
+                return false;
             }
+
+            // Hit wall/obstacle
             for (const obs of [...this.walls, ...this.obstacles]) {
                 if (p.mesh.position.distanceTo(obs.position) < 1) {
                     this.spawnParticles(p.mesh.position, 0xffaa00, 5);
-                    this.scene.remove(p.mesh); return false;
+                    this.scene.remove(p.mesh);
+                    return false;
                 }
             }
+
             if (p.life <= 0) { this.scene.remove(p.mesh); return false; }
             return true;
         });
@@ -1724,14 +1322,17 @@ class HeheFPS {
         document.getElementById('boss-health-bar').style.width = pct + '%';
         document.getElementById('boss-name').textContent = `💀 BOSS - ${boss.typeName}`;
         document.getElementById('boss-phase').textContent = `Phase ${this.bossPhase}`;
+
+        // Color based on phase
         const bar = document.getElementById('boss-health-bar');
         if (this.bossPhase >= 3) bar.style.background = 'linear-gradient(90deg, #ff0000, #ff4444)';
         else if (this.bossPhase >= 2) bar.style.background = 'linear-gradient(90deg, #ff4400, #ff8800)';
         else bar.style.background = 'linear-gradient(90deg, #ff4444, #ffaa00)';
+
         document.getElementById('boss-bar').classList.remove('hidden');
     }
 
-    // ==================== WAVE SYSTEM (v4.5 - with Shop Break) ====================
+    // ==================== WAVE SYSTEM ====================
     startWave(waveNum) {
         this.wave = waveNum;
         this.enemiesPerWave = 3 + waveNum * 2;
@@ -1742,20 +1343,17 @@ class HeheFPS {
         this.showWaveAnnounce(waveNum);
         this.updateHUD();
 
-        // Spawn house loot on forest map
-        if (this.selectedMap === 'forest') {
-            this.spawnHouseLoot();
-        }
-
         this.spawnInterval = setInterval(() => {
             if (this.enemiesSpawned >= this.enemiesPerWave || this.isDead) {
                 clearInterval(this.spawnInterval); return;
             }
+
             let type = 'basic';
             const rand = Math.random();
             if (waveNum >= 5 && this.enemiesSpawned === this.enemiesPerWave - 1) type = 'boss';
             else if (waveNum >= 3 && rand < 0.15) type = 'tank';
             else if (waveNum >= 2 && rand < 0.35) type = 'fast';
+
             this.spawnEnemy(type);
             this.enemiesSpawned++;
         }, 1500);
@@ -1765,28 +1363,12 @@ class HeheFPS {
         this.waveDelay = true;
         this.health = Math.min(this.maxHealth, this.health + 25);
         this.updateHUD();
-
-        // v4.5: Show Wave Break + Shop instead of auto-continuing
-        this.waveBreakTimer = this.waveBreakDuration;
-        this.waveBreakDisplay.style.display = 'block';
-        this.showShop();
-
-        const breakInterval = setInterval(() => {
-            if (this.isDead) { clearInterval(breakInterval); this.waveBreakDisplay.style.display = 'none'; return; }
-            this.waveBreakTimer--;
-            document.getElementById('wave-break-timer').textContent = this.waveBreakTimer;
-            if (this.waveBreakTimer <= 0) {
-                clearInterval(breakInterval);
-                this.waveBreakDisplay.style.display = 'none';
-                this.hideShop();
-                this.startWave(this.wave + 1);
-            }
-        }, 1000);
+        setTimeout(() => { if (!this.isDead) this.startWave(this.wave + 1); }, 3000);
     }
 
     // ==================== PICKUPS ====================
     spawnPickup() {
-        if (this.pickups.length > 6) return;
+        if (this.pickups.length > 4) return;
         const type = Math.random() > 0.5 ? 'health' : 'ammo';
         const geo = type === 'health' ? new THREE.OctahedronGeometry(0.4, 0) : new THREE.BoxGeometry(0.5, 0.5, 0.5);
         const mat = new THREE.MeshStandardMaterial({
@@ -1808,8 +1390,7 @@ class HeheFPS {
             const dist = pickup.mesh.position.distanceTo(this.yawObject.position);
             if (dist < 1.5) {
                 if (pickup.type === 'health') { this.health = Math.min(this.maxHealth, this.health + 25); }
-                else if (pickup.type === 'ammo') { this.weapons[this.currentWeapon].ammo = this.weapons[this.currentWeapon].maxAmmo; }
-                else if (pickup.type === 'money') { this.money += 5; }
+                else { this.weapons[this.currentWeapon].ammo = this.weapons[this.currentWeapon].maxAmmo; }
                 this.playSound('pickup');
                 this.scene.remove(pickup.mesh);
                 this.updateHUD();
@@ -1836,14 +1417,11 @@ class HeheFPS {
         if (this.spawnInterval) clearInterval(this.spawnInterval);
         if (this.pickupInterval) clearInterval(this.pickupInterval);
         if (document.pointerLockElement) document.exitPointerLock();
-        if (this.isDriving) this.exitCar();
         if (this.score > this.bestScore) { this.bestScore = this.score; localStorage.setItem('heheFPSBest', this.bestScore); }
 
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('mobile-controls').classList.add('hidden');
         document.getElementById('boss-bar').classList.add('hidden');
-        if (this.waveBreakDisplay) this.waveBreakDisplay.style.display = 'none';
-        this.hideShop();
         document.getElementById('go-score').textContent = this.score;
         document.getElementById('go-wave').textContent = this.wave;
         document.getElementById('go-kills').textContent = this.kills;
@@ -1895,55 +1473,78 @@ class HeheFPS {
     }
 
     // ==================== BGM SYSTEM ====================
-    initBGM() { if (!this.audioCtx) return; this.bgmPlaying = true; this.playBGM(); }
+    initBGM() {
+        if (!this.audioCtx) return;
+        this.bgmPlaying = true;
+        this.playBGM();
+    }
 
     playBGM() {
         if (!this.bgmPlaying || !this.audioCtx || !this.bgmEnabled) return;
-        const ctx = this.audioCtx; const now = ctx.currentTime;
-        const bpm = 130; const beatLen = 60/bpm;
 
-        const bass = ctx.createOscillator(); const bassGain = ctx.createGain();
-        bass.type = 'sawtooth'; bass.frequency.setValueAtTime(55, now);
+        const ctx = this.audioCtx;
+        const now = ctx.currentTime;
+        const bpm = 130;
+        const beatLen = 60 / bpm;
+
+        // Dark ambient bass drone
+        const bass = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bass.type = 'sawtooth';
+        bass.frequency.setValueAtTime(55, now);
         bassGain.gain.setValueAtTime(0.06, now);
         bass.connect(bassGain); bassGain.connect(ctx.destination);
-        bass.start(now); bass.stop(now + beatLen*8);
+        bass.start(now); bass.stop(now + beatLen * 8);
 
+        // Rhythmic kick
         for (let i = 0; i < 8; i++) {
-            const kick = ctx.createOscillator(); const kickGain = ctx.createGain();
-            kick.type = 'sine'; kick.frequency.setValueAtTime(150, now+i*beatLen);
-            kick.frequency.exponentialRampToValueAtTime(30, now+i*beatLen+0.1);
-            kickGain.gain.setValueAtTime(0.15, now+i*beatLen);
-            kickGain.gain.exponentialRampToValueAtTime(0.001, now+i*beatLen+0.15);
+            const kick = ctx.createOscillator();
+            const kickGain = ctx.createGain();
+            kick.type = 'sine';
+            kick.frequency.setValueAtTime(150, now + i * beatLen);
+            kick.frequency.exponentialRampToValueAtTime(30, now + i * beatLen + 0.1);
+            kickGain.gain.setValueAtTime(0.15, now + i * beatLen);
+            kickGain.gain.exponentialRampToValueAtTime(0.001, now + i * beatLen + 0.15);
             kick.connect(kickGain); kickGain.connect(ctx.destination);
-            kick.start(now+i*beatLen); kick.stop(now+i*beatLen+0.15);
+            kick.start(now + i * beatLen); kick.stop(now + i * beatLen + 0.15);
         }
 
+        // Hi-hat pattern
         for (let i = 0; i < 16; i++) {
-            const noise = ctx.createOscillator(); const noiseGain = ctx.createGain();
+            const noise = ctx.createOscillator();
+            const noiseGain = ctx.createGain();
             noise.type = 'square';
-            noise.frequency.setValueAtTime(3000+Math.random()*2000, now+i*beatLen*0.5);
-            noiseGain.gain.setValueAtTime(i%2===0?0.04:0.02, now+i*beatLen*0.5);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now+i*beatLen*0.5+0.05);
+            noise.frequency.setValueAtTime(3000 + Math.random()*2000, now + i * beatLen * 0.5);
+            noiseGain.gain.setValueAtTime(i%2===0 ? 0.04 : 0.02, now + i * beatLen * 0.5);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + i * beatLen * 0.5 + 0.05);
             noise.connect(noiseGain); noiseGain.connect(ctx.destination);
-            noise.start(now+i*beatLen*0.5); noise.stop(now+i*beatLen*0.5+0.05);
+            noise.start(now + i * beatLen * 0.5); noise.stop(now + i * beatLen * 0.5 + 0.05);
         }
 
+        // Melody (dark minor key)
         const notes = [220, 196, 185, 165, 220, 262, 247, 220];
         notes.forEach((freq, i) => {
-            const mel = ctx.createOscillator(); const melGain = ctx.createGain();
-            mel.type = 'triangle'; mel.frequency.setValueAtTime(freq, now+i*beatLen);
-            melGain.gain.setValueAtTime(0.05, now+i*beatLen);
-            melGain.gain.exponentialRampToValueAtTime(0.001, now+i*beatLen+beatLen*0.8);
+            const mel = ctx.createOscillator();
+            const melGain = ctx.createGain();
+            mel.type = 'triangle';
+            mel.frequency.setValueAtTime(freq, now + i * beatLen);
+            melGain.gain.setValueAtTime(0.05, now + i * beatLen);
+            melGain.gain.exponentialRampToValueAtTime(0.001, now + i * beatLen + beatLen * 0.8);
             mel.connect(melGain); melGain.connect(ctx.destination);
-            mel.start(now+i*beatLen); mel.stop(now+i*beatLen+beatLen);
+            mel.start(now + i * beatLen); mel.stop(now + i * beatLen + beatLen);
         });
 
+        // Loop
+        const loopDuration = beatLen * 8;
         this.bgmTimeout = setTimeout(() => {
             if (this.bgmPlaying && this.bgmEnabled) this.playBGM();
-        }, beatLen*8*1000);
+        }, loopDuration * 1000);
     }
 
-    stopBGM() { this.bgmPlaying = false; if (this.bgmTimeout) { clearTimeout(this.bgmTimeout); this.bgmTimeout = null; } }
+    stopBGM() {
+        this.bgmPlaying = false;
+        if (this.bgmTimeout) { clearTimeout(this.bgmTimeout); this.bgmTimeout = null; }
+    }
 
     toggleBGM() {
         this.bgmEnabled = !this.bgmEnabled;
@@ -1965,9 +1566,6 @@ class HeheFPS {
         document.getElementById('ammo-max').textContent = weapon.maxAmmo;
         document.getElementById('map-name-hud').textContent = this.maps[this.selectedMap].name;
 
-        // Money display (v4.5)
-        if (this.moneyDisplay) this.moneyDisplay.textContent = '$' + this.money;
-
         const healthPct = this.health / this.maxHealth;
         const healthBar = document.getElementById('health-bar');
         if (healthPct > 0.5) healthBar.style.background = 'linear-gradient(90deg, #44ff44, #00cc00)';
@@ -1976,11 +1574,6 @@ class HeheFPS {
 
         const ammoCurrent = document.getElementById('ammo-current');
         ammoCurrent.style.color = weapon.ammo <= weapon.maxAmmo * 0.25 ? '#ff4444' : '#ff8800';
-
-        // Update weapon slot visibility based on ownership
-        document.querySelectorAll('.weapon-slot').forEach((el, i) => {
-            el.style.opacity = this.ownedWeapons[i] ? '1' : '0.3';
-        });
     }
 
     showHitMarker() {
@@ -1993,7 +1586,7 @@ class HeheFPS {
 
     showWaveAnnounce(num) {
         document.getElementById('wave-announce-num').textContent = num;
-        document.getElementById('wave-sub-text').textContent = num > 1 ? `${3+num*2} Enemies Incoming!` : 'Get Ready!';
+        document.getElementById('wave-sub-text').textContent = num > 1 ? `${3 + num * 2} Enemies Incoming!` : 'Get Ready!';
         const el = document.getElementById('wave-announce');
         el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 2500);
     }
@@ -2013,9 +1606,11 @@ class HeheFPS {
         if (!this.audioCtx) return;
         try {
             const ctx = this.audioCtx;
-            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             const t = ctx.currentTime;
+
             switch (type) {
                 case 'shoot':
                     osc.type='sawtooth'; osc.frequency.setValueAtTime(200,t);
@@ -2078,24 +1673,28 @@ class HeheFPS {
 
         document.addEventListener('pointerlockchange', () => {
             this.isPointerLocked = !!document.pointerLockElement;
-            if (!this.isPointerLocked && this.isPlaying && !this.isDead && !this.isMobile && !this.shopOpen) {
-                if (document.pointerLockElement !== undefined) this.pauseGame();
+            // Don't auto-pause on mobile or Capacitor
+            if (!this.isPointerLocked && this.isPlaying && !this.isDead && !this.isMobile) {
+                // Only pause if pointer lock was actually available and lost
+                if (document.pointerLockElement !== undefined) {
+                    this.pauseGame();
+                }
             }
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!this.isPointerLocked || !this.isPlaying) return;
-            this.targetYaw -= (e.movementX || 0) * this.mouseSensitivity;
-            this.targetPitch -= (e.movementY || 0) * this.mouseSensitivity;
-            this.targetPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.targetPitch));
+            this.yawObject.rotation.y -= (e.movementX || 0) * this.mouseSensitivity;
+            this.pitchObject.rotation.x -= (e.movementY || 0) * this.mouseSensitivity;
+            this.pitchObject.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.pitchObject.rotation.x));
         });
 
         document.addEventListener('mousedown', (e) => {
-            if (!this.isPlaying || this.isDead || this.shopOpen) return;
+            if (!this.isPlaying || this.isDead) return;
             if (e.button === 0) {
-                if (!this.isPointerLocked && !this.isMobile) {
+                if (!this.isPointerLocked && !this.isMobile) { 
                     try { this.renderer.domElement.requestPointerLock(); } catch(e) {}
-                    return;
+                    return; 
                 }
                 this.shoot(); this.mouseDown = true;
             }
@@ -2104,7 +1703,6 @@ class HeheFPS {
 
         document.addEventListener('keydown', (e) => {
             if (!this.isPlaying || this.isDead) return;
-            if (this.shopOpen) return;
             switch (e.code) {
                 case 'KeyW': this.moveForward=true; break;
                 case 'KeyS': this.moveBackward=true; break;
@@ -2119,11 +1717,7 @@ class HeheFPS {
                 case 'Digit5': this.switchWeapon(4); break;
                 case 'Digit6': this.switchWeapon(5); break;
                 case 'KeyM': this.toggleBGM(); break;
-                case 'KeyF': // Enter/Exit car (v5.0)
-                    if (this.isDriving) this.exitCar();
-                    else if (this.nearCar) this.enterCar();
-                    break;
-                case 'Escape': if (this.isPlaying && !this.isPaused && !this.shopOpen) this.pauseGame(); break;
+                case 'Escape': if (this.isPlaying && !this.isPaused) this.pauseGame(); break;
             }
         });
 
@@ -2140,14 +1734,11 @@ class HeheFPS {
         document.addEventListener('contextmenu', e => e.preventDefault());
 
         document.querySelectorAll('.weapon-slot').forEach(slot => {
-            slot.addEventListener('click', () => {
-                const idx = parseInt(slot.dataset.weapon);
-                if (this.ownedWeapons[idx]) this.switchWeapon(idx);
-            });
+            slot.addEventListener('click', () => this.switchWeapon(parseInt(slot.dataset.weapon)));
         });
     }
 
-    // ==================== MOBILE (v4.0 - Ultra-Smooth) ====================
+    // ==================== MOBILE ====================
     initMobileControls() {
         if (!this.isMobile) return;
 
@@ -2155,7 +1746,6 @@ class HeheFPS {
         const joystickThumb = document.getElementById('joystick-thumb');
         const joystickZone = document.getElementById('joystick-zone');
         let joystickTouchId = null, joystickCenterX = 0, joystickCenterY = 0;
-        const deadZone = 8; // v4.0: Dead zone in pixels
 
         joystickZone.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -2169,25 +1759,13 @@ class HeheFPS {
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (touch.identifier === joystickTouchId) {
-                    let dx = touch.clientX - joystickCenterX;
-                    let dy = touch.clientY - joystickCenterY;
-                    const rawDist = Math.sqrt(dx*dx+dy*dy);
-
-                    // v4.0: Dead zone - ignore tiny movements
-                    if (rawDist < deadZone) {
-                        this.joystickDir.x = 0; this.joystickDir.y = 0;
-                        joystickThumb.style.transform = 'translate(-50%, -50%)';
-                        return;
-                    }
-
-                    const maxDist = 40;
-                    const clampDist = Math.min(rawDist, maxDist);
+                    const dx = touch.clientX - joystickCenterX, dy = touch.clientY - joystickCenterY;
+                    const maxDist = 40; const dist = Math.sqrt(dx*dx+dy*dy);
+                    const clampDist = Math.min(dist, maxDist);
                     const angle = Math.atan2(dy, dx);
-                    const thumbX = Math.cos(angle)*clampDist;
-                    const thumbY = Math.sin(angle)*clampDist;
+                    const thumbX = Math.cos(angle)*clampDist, thumbY = Math.sin(angle)*clampDist;
                     joystickThumb.style.transform = `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`;
-                    this.joystickDir.x = thumbX/maxDist;
-                    this.joystickDir.y = thumbY/maxDist;
+                    this.joystickDir.x = thumbX/maxDist; this.joystickDir.y = thumbY/maxDist;
                 }
             }
         }, { passive: false });
@@ -2204,12 +1782,10 @@ class HeheFPS {
         joystickZone.addEventListener('touchend', resetJoystick);
         joystickZone.addEventListener('touchcancel', resetJoystick);
 
-        // Shoot button with haptic feedback
+        // Shoot button
         let shootInterval = null;
         document.getElementById('btn-shoot').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.mobileShoot = true; this.shoot();
-            if (navigator.vibrate) navigator.vibrate(30); // v4.0: Haptic
+            e.preventDefault(); this.mobileShoot = true; this.shoot();
             const weapon = this.weapons[this.currentWeapon];
             if (weapon.auto) shootInterval = setInterval(() => this.shoot(), weapon.fireRate + 10);
         }, { passive: false });
@@ -2218,21 +1794,10 @@ class HeheFPS {
             if (shootInterval) { clearInterval(shootInterval); shootInterval = null; }
         });
 
-        document.getElementById('btn-reload').addEventListener('touchstart', (e) => {
-            e.preventDefault(); this.reload();
-            if (navigator.vibrate) navigator.vibrate(20);
-        }, { passive: false });
+        document.getElementById('btn-reload').addEventListener('touchstart', (e) => { e.preventDefault(); this.reload(); }, { passive: false });
+        document.getElementById('btn-weapon').addEventListener('touchstart', (e) => { e.preventDefault(); this.switchWeapon((this.currentWeapon+1)%6); }, { passive: false });
 
-        document.getElementById('btn-weapon').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            // Cycle to next owned weapon
-            let next = (this.currentWeapon + 1) % 6;
-            let tries = 0;
-            while (!this.ownedWeapons[next] && tries < 6) { next = (next + 1) % 6; tries++; }
-            if (this.ownedWeapons[next]) this.switchWeapon(next);
-        }, { passive: false });
-
-        // Touch look (v4.0: Smooth with lerp)
+        // Touch look
         const canvas = this.renderer.domElement;
         let lookTouchId = null;
         canvas.addEventListener('touchstart', (e) => {
@@ -2244,12 +1809,9 @@ class HeheFPS {
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (touch.identifier === lookTouchId && this.touchLookActive) {
-                    const dx = touch.clientX - this.lastTouchX;
-                    const dy = touch.clientY - this.lastTouchY;
-                    // v4.0: Update target rotation (will be lerped in animate)
-                    this.targetYaw -= dx * 0.004;
-                    this.targetPitch -= dy * 0.004;
-                    this.targetPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.targetPitch));
+                    this.yawObject.rotation.y -= (touch.clientX - this.lastTouchX) * 0.004;
+                    this.pitchObject.rotation.x -= (touch.clientY - this.lastTouchY) * 0.004;
+                    this.pitchObject.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.pitchObject.rotation.x));
                     this.lastTouchX = touch.clientX; this.lastTouchY = touch.clientY;
                 }
             }
@@ -2266,32 +1828,31 @@ class HeheFPS {
     // ==================== GAME FLOW ====================
     startGame() {
         this.initAudio();
+
+        // Clear previous world
         this.clearWorld();
 
+        // Reset state
         this.isPlaying = true; this.isDead = false; this.isPaused = false;
         this.health = this.maxHealth; this.score = 0; this.kills = 0; this.wave = 1;
-        this.money = 0; this.damageMultiplier = 1;
-        this.killStreak = 0; this.lastKillTime = 0;
         this.currentBoss = null; this.bossPhase = 0; this.bossAttackTimer = 0;
-        this.isDriving = false; this.carSpeed = 0;
 
-        // Reset weapon ownership
-        this.ownedWeapons = [true, false, false, false, false, false];
         this.weapons.forEach(w => w.ammo = w.maxAmmo);
         this.currentWeapon = 0; this.createWeaponMesh();
 
         this.enemies.forEach(e => this.scene.remove(e.mesh)); this.enemies = [];
-        this.dyingEnemies = [];
         this.pickups.forEach(p => this.scene.remove(p.mesh)); this.pickups = [];
         this.particles.forEach(p => this.scene.remove(p.mesh)); this.particles = [];
         this.bossProjectiles.forEach(p => this.scene.remove(p.mesh)); this.bossProjectiles = [];
 
+        // Load selected map
         this.loadMap(this.selectedMap);
 
+        // Reset player
         this.yawObject.position.set(0, 1.7, this.arenaSize * 0.6);
         this.pitchObject.rotation.x = 0; this.yawObject.rotation.y = 0;
-        this.targetYaw = 0; this.targetPitch = 0;
 
+        // UI
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('gameover-screen').classList.add('hidden');
         document.getElementById('pause-screen').classList.add('hidden');
@@ -2312,6 +1873,7 @@ class HeheFPS {
             if (this.isPlaying && !this.isDead) this.spawnPickup();
         }, 10000);
 
+        // Start BGM
         if (this.bgmEnabled) { this.bgmPlaying = true; this.initBGM(); }
     }
 
@@ -2336,15 +1898,12 @@ class HeheFPS {
         if (this.spawnInterval) clearInterval(this.spawnInterval);
         if (this.pickupInterval) clearInterval(this.pickupInterval);
         this.stopBGM();
-        this.hideShop();
-        if (this.isDriving) this.exitCar();
         this.enemies.forEach(e => this.scene.remove(e.mesh)); this.enemies = [];
         document.getElementById('gameover-screen').classList.add('hidden');
         document.getElementById('pause-screen').classList.add('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('mobile-controls').classList.add('hidden');
         document.getElementById('boss-bar').classList.add('hidden');
-        if (this.waveBreakDisplay) this.waveBreakDisplay.style.display = 'none';
         document.getElementById('start-screen').classList.remove('hidden');
         if (document.pointerLockElement) document.exitPointerLock();
     }
@@ -2354,43 +1913,13 @@ class HeheFPS {
         requestAnimationFrame(() => this.animate());
         const delta = Math.min(this.clock.getDelta(), 0.1);
 
-        if (this.isPlaying && !this.isPaused && !this.isDead && !this.shopOpen) {
-            // v4.0: Smooth camera lerp
-            if (this.isMobile || this.isDriving) {
-                this.yawObject.rotation.y += (this.targetYaw - this.yawObject.rotation.y) * this.cameraLerpFactor;
-                this.pitchObject.rotation.x += (this.targetPitch - this.pitchObject.rotation.x) * this.cameraLerpFactor;
-            } else if (this.isPointerLocked) {
-                // Desktop: direct rotation (already smooth from mouse)
-                this.yawObject.rotation.y = this.targetYaw;
-                this.pitchObject.rotation.x = this.targetPitch;
-            }
-
-            // v4.0: Smooth joystick lerp
-            if (this.joystickActive) {
-                this.smoothJoystickX += (this.joystickDir.x - this.smoothJoystickX) * this.joystickLerpFactor;
-                this.smoothJoystickY += (this.joystickDir.y - this.smoothJoystickY) * this.joystickLerpFactor;
-            } else {
-                this.smoothJoystickX *= 0.85;
-                this.smoothJoystickY *= 0.85;
-            }
-
-            if (this.isDriving) {
-                this.updateCar(delta);
-            } else {
-                this.updateMovement(delta);
-            }
-
+        if (this.isPlaying && !this.isPaused && !this.isDead) {
+            this.updateMovement(delta);
             this.updateEnemies(delta);
             this.updateBossProjectiles(delta);
             this.updatePickups();
             this.updateParticles(delta);
-            this.updateDyingEnemies(delta);
             this.updateWeaponAnimation(delta);
-
-            // Check near car (v5.0)
-            if (this.selectedMap === 'forest') {
-                this.checkNearCar();
-            }
 
             // Auto-fire
             if (this.mouseDown && this.weapons[this.currentWeapon].auto && (this.isPointerLocked || this.isMobile)) {
@@ -2416,12 +1945,7 @@ class HeheFPS {
         if (this.moveBackward) direction.z += 1;
         if (this.moveLeft) direction.x -= 1;
         if (this.moveRight) direction.x += 1;
-
-        // v4.0: Use smoothed joystick values
-        if (this.joystickActive) {
-            direction.x += this.smoothJoystickX;
-            direction.z += this.smoothJoystickY;
-        }
+        if (this.joystickActive) { direction.x += this.joystickDir.x; direction.z += this.joystickDir.y; }
 
         direction.normalize();
         if (direction.length() > 0) {
@@ -2436,26 +1960,6 @@ class HeheFPS {
             let canMove = true;
             for (const obs of this.obstacles) {
                 const colRadius = obs.userData.collisionRadius || 1.5;
-                // Allow walking through doorways of enterable buildings
-                if (obs.userData.isBuilding && obs.userData.doorSide) {
-                    // Simplified: allow entry if roughly aligned with door
-                    const dx = Math.abs(newPos.x - obs.position.x);
-                    const dz = Math.abs(newPos.z - obs.position.z);
-                    const bW = obs.userData.buildingW || 10;
-                    const bD = obs.userData.buildingD || 10;
-                    const doorW = obs.userData.doorWidth || 1.8;
-
-                    if (obs.userData.doorSide === 'front' && dz > bD/2 - 1 && dx < doorW/2 + 0.5) {
-                        continue; // Allow through front door
-                    }
-                    if (obs.userData.doorSide === 'left' && dx > bW/2 - 1 && dz < doorW/2 + 0.5) {
-                        continue;
-                    }
-                    if (obs.userData.doorSide === 'right' && dx > bW/2 - 1 && dz < doorW/2 + 0.5) {
-                        continue;
-                    }
-                }
-
                 const dist = new THREE.Vector2(newPos.x - obs.position.x, newPos.z - obs.position.z).length();
                 if (dist < colRadius) { canMove = false; break; }
             }

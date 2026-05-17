@@ -72,8 +72,8 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.2.${{ github.run_number }}
-        name: Hehe FPS v3.2.${{ github.run_number }}
+        tag_name: v5.0.${{ github.run_number }}
+        name: Hehe FPS v5.0.${{ github.run_number }}
         files: android/app/build/outputs/apk/debug/app-debug.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

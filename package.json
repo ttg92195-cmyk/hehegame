@@ -1,6 +1,6 @@
 {
   "name": "hehe-fps-game",
-  "version": "3.2.0",
+  "version": "5.0.0",
   "description": "🔫 Hehe FPS - 3D First Person Shooter Game",
   "main": "www/index.html",
   "scripts": {
