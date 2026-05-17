@@ -1,8 +1,10 @@
 // ============================================================
-// 🔫 HEHE FPS v3.1 - 3D First Person Shooter Game Engine
+// 🔫 HEHE FPS v3.2 - 3D First Person Shooter Game Engine
 // Features: 6 Weapons, 4 Maps (Giant Forest), Humanoid Enemies,
-//           Boss Fights, Procedural BGM, Auto-Landscape
+//           Boss Fights, Procedural BGM, Native Landscape Lock
 // Built with Three.js | Mobile + Desktop Support
+// v3.2 Hotfix: Removed CSS transform rotation, using Android
+//   native landscape lock via AndroidManifest + Capacitor config
 // ============================================================
 
 class HeheFPS {
@@ -122,8 +124,10 @@ class HeheFPS {
         this.showLoading();
         console.log('[HeheFPS] Initializing... Mobile:', this.isMobile);
 
-        // ===== AUTO-LANDSCAPE for Mobile =====
-        this.forceLandscape();
+        // ===== NATIVE LANDSCAPE LOCK for Mobile (v3.2 Hotfix) =====
+        // Only use Screen Orientation API - NO CSS transform fallback
+        // Android landscape is handled natively via AndroidManifest.xml
+        this.lockOrientationNative();
 
         // Check Three.js loaded
         if (typeof THREE === 'undefined') {
@@ -168,58 +172,39 @@ class HeheFPS {
 
     showLoading() { document.getElementById('loading-screen').classList.remove('hidden'); }
 
-    // ==================== AUTO-LANDSCAPE (v3.1) ====================
-    forceLandscape() {
+    // ==================== NATIVE LANDSCAPE LOCK (v3.2 Hotfix) ====================
+    // v3.2: Removed forceLandscape() and applyCSSTransform() which caused
+    // CSS transform:rotate(90deg) double-rotation on Android.
+    // Now only uses the Screen Orientation API (no CSS fallback).
+    // Android native landscape is enforced via:
+    //   - AndroidManifest.xml: android:screenOrientation="landscape"
+    //   - capacitor.config.json: android.orientation = "landscape"
+    lockOrientationNative() {
         if (!this.isMobile) return;
 
-        // Try Screen Orientation API
+        // Try native Screen Orientation API (works in Capacitor WebView)
         const tryLock = () => {
             if (screen.orientation && screen.orientation.lock) {
                 screen.orientation.lock('landscape').then(() => {
                     console.log('[HeheFPS] Landscape locked via Screen Orientation API');
                 }).catch(err => {
-                    console.log('[HeheFPS] Screen orientation lock failed:', err.message);
-                    this.applyCSSTransform();
+                    // Silently fail - AndroidManifest handles this natively in APK
+                    console.log('[HeheFPS] Screen orientation lock not available:', err.message);
                 });
-            } else {
-                this.applyCSSTransform();
             }
         };
 
-        // Try locking after first user interaction (required by browsers)
-        tryLock();
-
-        // Also try on first touch/click (some browsers require user gesture)
+        // Try on first user interaction (browsers require user gesture)
         const onFirstInteraction = () => {
             tryLock();
             document.removeEventListener('touchstart', onFirstInteraction);
             document.removeEventListener('click', onFirstInteraction);
         };
-        document.addEventListener('touchstart', onFirstInteraction);
-        document.addEventListener('click', onFirstInteraction);
+        document.addEventListener('touchstart', onFirstInteraction, { once: true });
+        document.addEventListener('click', onFirstInteraction, { once: true });
 
-        // Listen for orientation changes and re-lock
-        if (screen.orientation) {
-            screen.orientation.addEventListener('change', () => {
-                if (screen.orientation.type.includes('portrait')) {
-                    tryLock();
-                }
-            });
-        }
-    }
-
-    applyCSSTransform() {
-        // Fallback: CSS transform for portrait mode
-        const checkOrientation = () => {
-            if (window.innerHeight > window.innerWidth) {
-                document.body.classList.add('force-landscape');
-            } else {
-                document.body.classList.remove('force-landscape');
-            }
-        };
-        checkOrientation();
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
+        // Also try immediately (works in some Capacitor WebViews)
+        tryLock();
     }
 
     // ==================== THREE.JS INIT ====================
@@ -242,9 +227,26 @@ class HeheFPS {
         document.getElementById('game-canvas-container').appendChild(this.renderer.domElement);
 
         window.addEventListener('resize', () => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
+            // v3.2 Hotfix: Clean resize handler - no CSS transform involved
+            // Canvas dimensions follow actual window size
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            this.camera.aspect = w / h;
             this.camera.updateProjectionMatrix();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.renderer.setSize(w, h);
+            console.log('[HeheFPS] Resize:', w, 'x', h);
+        });
+
+        // Also handle orientation change for smoother transitions on mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                this.camera.aspect = w / h;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(w, h);
+                console.log('[HeheFPS] Orientation changed, resize:', w, 'x', h);
+            }, 100);
         });
     }
 

@@ -42,12 +42,21 @@ jobs:
       run: |
         MANIFEST="android/app/src/main/AndroidManifest.xml"
         if [ -f "$MANIFEST" ]; then
-          sed -i 's/android:screenOrientation="unspecified"/android:screenOrientation="sensorLandscape"/g' "$MANIFEST"
-          sed -i 's/android:screenOrientation="portrait"/android:screenOrientation="sensorLandscape"/g' "$MANIFEST"
+          # Replace any existing orientation with landscape (not sensorLandscape to avoid rotation issues)
+          sed -i 's/android:screenOrientation="[^"]*"/android:screenOrientation="landscape"/g' "$MANIFEST"
+          # If no screenOrientation attribute exists, add it to the MainActivity
           if ! grep -q "android:screenOrientation" "$MANIFEST"; then
-            sed -i 's/<activity /\0android:screenOrientation="sensorLandscape" /g' "$MANIFEST"
+            sed -i 's/<activity /\0android:screenOrientation="landscape" /g' "$MANIFEST"
           fi
-          echo "AndroidManifest.xml updated for landscape orientation"
+          # Add configChanges to handle orientation changes without recreating activity
+          if ! grep -q "android:configChanges" "$MANIFEST"; then
+            sed -i '/android:screenOrientation/a\            android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"' "$MANIFEST"
+          else
+            sed -i 's/android:configChanges="[^"]*"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' "$MANIFEST"
+          fi
+          echo "=== AndroidManifest.xml content ==="
+          cat "$MANIFEST"
+          echo "=== Landscape orientation locked ==="
         fi
     
     - name: Build APK
@@ -63,8 +72,8 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.1.${{ github.run_number }}
-        name: Hehe FPS v3.1.${{ github.run_number }}
+        tag_name: v3.2.${{ github.run_number }}
+        name: Hehe FPS v3.2.${{ github.run_number }}
         files: android/app/build/outputs/apk/debug/app-debug.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -391,34 +391,17 @@ body {
     #boss-bar { width: 280px; }
 }
 
-/* ===== Force Landscape (v3.1 Auto-Landscape) ===== */
-body.force-landscape {
-    transform: rotate(90deg);
-    transform-origin: top left;
-    width: 100vh;
-    height: 100vw;
-    position: fixed;
-    top: 0;
-    left: 100vw;
-    overflow: hidden;
-}
-
-body.force-landscape #game-canvas-container {
-    width: 100vh !important;
-    height: 100vw !important;
-}
-
-body.force-landscape #game-canvas-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-/* Landscape orientation notification */
+/* ===== Landscape Notice (v3.2 - CSS Transform Removed) ===== */
+/* v3.2 Hotfix: Removed all CSS transform:rotate() code that caused
+   double-rotation conflict on Android. Landscape is now handled
+   natively via AndroidManifest.xml android:screenOrientation="landscape"
+   and Capacitor config orientation preference. */
 .landscape-notice {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.95);
     z-index: 9999;
-    display: flex; flex-direction: column;
+    display: none; /* Hidden by default - Android handles orientation natively */
+    flex-direction: column;
     align-items: center; justify-content: center;
     color: #fff; text-align: center;
 }
