@@ -94,8 +94,11 @@ class HeheFPS {
         this.bgmNodes = null;
         this.bgmInterval = null;
 
-        // Mobile
-        this.isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        // Mobile - Better detection for Capacitor APK
+        this.isMobile = /Android|iPhone|iPad|iPod|webOS|mobile/i.test(navigator.userAgent) || 
+            window.innerWidth <= 768 || 
+            ('ontouchstart' in window) || 
+            (navigator.maxTouchPoints > 0);
         this.joystickActive = false; this.joystickDir = { x:0, y:0 };
         this.touchLookActive = false;
         this.lastTouchX = 0; this.lastTouchY = 0; this.mobileShoot = false;
@@ -111,26 +114,45 @@ class HeheFPS {
 
     init() {
         this.showLoading();
-        this.initThree();
-        this.initWorld();
-        this.initPlayer();
-        this.initWeapons();
-        this.initEvents();
-        this.initMobileControls();
-        this.initMapSelector();
+        console.log('[HeheFPS] Initializing... Mobile:', this.isMobile);
 
+        // Check Three.js loaded
+        if (typeof THREE === 'undefined') {
+            document.getElementById('load-text').textContent = 'Error: 3D Engine failed to load. Please restart.';
+            document.getElementById('load-bar').style.background = '#ff4444';
+            console.error('[HeheFPS] THREE.js not loaded!');
+            return;
+        }
+        console.log('[HeheFPS] THREE.js loaded OK');
+
+        try {
+            this.initThree();
+            this.initWorld();
+            this.initPlayer();
+            this.initWeapons();
+            this.initEvents();
+            this.initMobileControls();
+            this.initMapSelector();
+        } catch (e) {
+            document.getElementById('load-text').textContent = 'Error: ' + e.message;
+            document.getElementById('load-bar').style.background = '#ff4444';
+            console.error('Game init error:', e);
+            return;
+        }
+
+        // Fast loading - complete in ~1 second
         let progress = 0;
         const loadInterval = setInterval(() => {
-            progress += Math.random() * 12 + 5;
+            progress += 15 + Math.random() * 10;
             if (progress >= 100) { progress = 100; clearInterval(loadInterval);
                 setTimeout(() => {
                     document.getElementById('loading-screen').classList.add('hidden');
                     document.getElementById('start-screen').classList.remove('hidden');
-                }, 500);
+                }, 300);
             }
             document.getElementById('load-bar').style.width = progress + '%';
             document.getElementById('load-text').textContent = `Loading ${Math.floor(progress)}%`;
-        }, 200);
+        }, 100);
 
         this.animate();
     }
@@ -149,11 +171,11 @@ class HeheFPS {
         this.yawObject.position.set(0, 1.7, 0);
         this.scene.add(this.yawObject);
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ antialias: !this.isMobile });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.5 : 2));
+        this.renderer.shadowMap.enabled = !this.isMobile;
+        if (!this.isMobile) this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('game-canvas-container').appendChild(this.renderer.domElement);
 
         window.addEventListener('resize', () => {
@@ -1238,7 +1260,13 @@ class HeheFPS {
 
         document.addEventListener('pointerlockchange', () => {
             this.isPointerLocked = !!document.pointerLockElement;
-            if (!this.isPointerLocked && this.isPlaying && !this.isDead && !this.isMobile) this.pauseGame();
+            // Don't auto-pause on mobile or Capacitor
+            if (!this.isPointerLocked && this.isPlaying && !this.isDead && !this.isMobile) {
+                // Only pause if pointer lock was actually available and lost
+                if (document.pointerLockElement !== undefined) {
+                    this.pauseGame();
+                }
+            }
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -1251,7 +1279,10 @@ class HeheFPS {
         document.addEventListener('mousedown', (e) => {
             if (!this.isPlaying || this.isDead) return;
             if (e.button === 0) {
-                if (!this.isPointerLocked && !this.isMobile) { this.renderer.domElement.requestPointerLock(); return; }
+                if (!this.isPointerLocked && !this.isMobile) { 
+                    try { this.renderer.domElement.requestPointerLock(); } catch(e) {}
+                    return; 
+                }
                 this.shoot(); this.mouseDown = true;
             }
         });
@@ -1419,7 +1450,9 @@ class HeheFPS {
         document.querySelectorAll('.weapon-slot').forEach((el, i) => el.classList.toggle('active', i === 0));
         this.updateHUD();
 
-        if (!this.isMobile) this.renderer.domElement.requestPointerLock();
+        if (!this.isMobile) {
+            try { this.renderer.domElement.requestPointerLock(); } catch(e) {}
+        }
 
         this.startWave(1);
 
@@ -1441,7 +1474,9 @@ class HeheFPS {
     resumeGame() {
         this.isPaused = false;
         document.getElementById('pause-screen').classList.add('hidden');
-        if (!this.isMobile) this.renderer.domElement.requestPointerLock();
+        if (!this.isMobile) {
+            try { this.renderer.domElement.requestPointerLock(); } catch(e) {}
+        }
         if (this.bgmEnabled) { this.bgmPlaying = true; this.playBGM(); }
     }
 
