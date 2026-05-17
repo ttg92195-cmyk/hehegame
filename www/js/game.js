@@ -423,6 +423,11 @@ class HeheFPS {
         this.scene.add(archMesh);
     }
 
+    initWorld() {
+        // Load the default map (selected by user on start screen)
+        this.loadMap(this.selectedMap);
+    }
+
     initPlayer() { this.yawObject.position.set(0, 1.7, this.arenaSize * 0.6); }
 
     // ==================== WEAPONS ====================
