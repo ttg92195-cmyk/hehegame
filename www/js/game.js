@@ -1,6 +1,7 @@
 // ============================================================
-// 🔫 HEHE FPS v2.0 - 3D First Person Shooter Game Engine
-// Features: 6 Weapons, 3 Maps, Boss Fights, Procedural BGM
+// 🔫 HEHE FPS v3.1 - 3D First Person Shooter Game Engine
+// Features: 6 Weapons, 4 Maps (Giant Forest), Humanoid Enemies,
+//           Boss Fights, Procedural BGM, Auto-Landscape
 // Built with Three.js | Mobile + Desktop Support
 // ============================================================
 
@@ -61,6 +62,11 @@ class HeheFPS {
                 name: 'Ruins', size: 60, fogColor: 0x0a1a0a, groundColor: 0x223322,
                 wallColor: 0x445544, neonColor: 0x44ff44, skyColor: 0x0a1a0a,
                 ambientIntensity: 0.3, dirIntensity: 1.0
+            },
+            forest: {
+                name: 'Forest Ruins', size: 150, fogColor: 0x0a1a0a, groundColor: 0x1a2a1a,
+                wallColor: 0x2a3a2a, neonColor: 0x66ff66, skyColor: 0x081208,
+                ambientIntensity: 0.35, dirIntensity: 0.7
             }
         };
 
@@ -116,6 +122,9 @@ class HeheFPS {
         this.showLoading();
         console.log('[HeheFPS] Initializing... Mobile:', this.isMobile);
 
+        // ===== AUTO-LANDSCAPE for Mobile =====
+        this.forceLandscape();
+
         // Check Three.js loaded
         if (typeof THREE === 'undefined') {
             document.getElementById('load-text').textContent = 'Error: 3D Engine failed to load. Please restart.';
@@ -159,13 +168,67 @@ class HeheFPS {
 
     showLoading() { document.getElementById('loading-screen').classList.remove('hidden'); }
 
+    // ==================== AUTO-LANDSCAPE (v3.1) ====================
+    forceLandscape() {
+        if (!this.isMobile) return;
+
+        // Try Screen Orientation API
+        const tryLock = () => {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').then(() => {
+                    console.log('[HeheFPS] Landscape locked via Screen Orientation API');
+                }).catch(err => {
+                    console.log('[HeheFPS] Screen orientation lock failed:', err.message);
+                    this.applyCSSTransform();
+                });
+            } else {
+                this.applyCSSTransform();
+            }
+        };
+
+        // Try locking after first user interaction (required by browsers)
+        tryLock();
+
+        // Also try on first touch/click (some browsers require user gesture)
+        const onFirstInteraction = () => {
+            tryLock();
+            document.removeEventListener('touchstart', onFirstInteraction);
+            document.removeEventListener('click', onFirstInteraction);
+        };
+        document.addEventListener('touchstart', onFirstInteraction);
+        document.addEventListener('click', onFirstInteraction);
+
+        // Listen for orientation changes and re-lock
+        if (screen.orientation) {
+            screen.orientation.addEventListener('change', () => {
+                if (screen.orientation.type.includes('portrait')) {
+                    tryLock();
+                }
+            });
+        }
+    }
+
+    applyCSSTransform() {
+        // Fallback: CSS transform for portrait mode
+        const checkOrientation = () => {
+            if (window.innerHeight > window.innerWidth) {
+                document.body.classList.add('force-landscape');
+            } else {
+                document.body.classList.remove('force-landscape');
+            }
+        };
+        checkOrientation();
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200));
+    }
+
     // ==================== THREE.JS INIT ====================
     initThree() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x111122);
         this.scene.fog = new THREE.Fog(0x111122, 30, 80);
 
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
         this.pitchObject.add(this.camera);
         this.yawObject.add(this.pitchObject);
         this.yawObject.position.set(0, 1.7, 0);
@@ -202,7 +265,7 @@ class HeheFPS {
 
         // Update scene atmosphere
         this.scene.background = new THREE.Color(map.skyColor);
-        this.scene.fog = new THREE.Fog(map.fogColor, map.size * 0.5, map.size * 1.5);
+        this.scene.fog = new THREE.Fog(map.fogColor, map.size * 0.3, Math.min(map.size * 2, 300));
 
         // Ground
         const groundGeo = new THREE.PlaneGeometry(map.size * 2, map.size * 2);
@@ -220,6 +283,7 @@ class HeheFPS {
         if (mapKey === 'arena') this.createArenaObstacles(map);
         else if (mapKey === 'warehouse') this.createWarehouseObstacles(map);
         else if (mapKey === 'ruins') this.createRuinsObstacles(map);
+        else if (mapKey === 'forest') this.createForestObstacles(map);
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0x334466, map.ambientIntensity);
@@ -421,6 +485,217 @@ class HeheFPS {
         archMesh.position.set(0, 3, 0); archMesh.rotation.y = Math.PI/2;
         archMesh.castShadow = true;
         this.scene.add(archMesh);
+    }
+
+    // ==================== FOREST MAP (Giant Open World) ====================
+    createForestObstacles(map) {
+        const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9, metalness: 0.1 });
+        const treeLeavesMat = new THREE.MeshStandardMaterial({ color: 0x1a5a1a, roughness: 0.8, metalness: 0.05, emissive: 0x0a2a0a, emissiveIntensity: 0.1 });
+        const treeLeavesMat2 = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.8, metalness: 0.05 });
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.8, metalness: 0.2 });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x663322, roughness: 0.7, metalness: 0.3 });
+        const wallMat2 = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.85, metalness: 0.15 });
+
+        // ========= 3D TREES (100+ Procedural) =========
+        const treeCount = 120;
+        const occupiedPositions = []; // Track positions to avoid overlap
+
+        for (let i = 0; i < treeCount; i++) {
+            let x, z, tooClose;
+            // Find a position that doesn't overlap with existing objects
+            let attempts = 0;
+            do {
+                x = (Math.random() - 0.5) * map.size * 1.7;
+                z = (Math.random() - 0.5) * map.size * 1.7;
+                tooClose = false;
+                for (const pos of occupiedPositions) {
+                    if (Math.sqrt((x - pos.x) ** 2 + (z - pos.z) ** 2) < 5) {
+                        tooClose = true; break;
+                    }
+                }
+                attempts++;
+            } while (tooClose && attempts < 20);
+
+            occupiedPositions.push({ x, z });
+
+            const treeGroup = new THREE.Group();
+
+            // Trunk (CylinderGeometry)
+            const trunkHeight = 3 + Math.random() * 4;
+            const trunkRadius = 0.2 + Math.random() * 0.3;
+            const trunkGeo = new THREE.CylinderGeometry(
+                Math.max(0.1, trunkRadius * 0.6), Math.max(0.1, trunkRadius), trunkHeight, 6
+            );
+            const trunk = new THREE.Mesh(trunkGeo, treeTrunkMat);
+            trunk.position.y = trunkHeight / 2;
+            trunk.castShadow = true;
+            treeGroup.add(trunk);
+
+            // Leaves (ConeGeometry - 2-3 layers for fullness)
+            const leavesMat = Math.random() > 0.5 ? treeLeavesMat : treeLeavesMat2;
+            const layers = 2 + Math.floor(Math.random() * 2);
+            for (let l = 0; l < layers; l++) {
+                const leafRadius = (2.5 - l * 0.5) * (0.7 + Math.random() * 0.5);
+                const leafHeight = 2.5 - l * 0.3;
+                const leafGeo = new THREE.ConeGeometry(Math.max(0.5, leafRadius), Math.max(0.5, leafHeight), 7);
+                const leaf = new THREE.Mesh(leafGeo, leavesMat);
+                leaf.position.y = trunkHeight + l * 1.2;
+                leaf.castShadow = true;
+                treeGroup.add(leaf);
+            }
+
+            treeGroup.position.set(x, 0, z);
+            this.scene.add(treeGroup);
+
+            // Add trunk as obstacle with collision radius
+            const collisionObs = new THREE.Object3D();
+            collisionObs.position.set(x, trunkHeight / 2, z);
+            collisionObs.userData = { isObstacle: true, collisionRadius: Math.max(1.0, trunkRadius * 3) };
+            this.obstacles.push(collisionObs);
+        }
+
+        // ========= 3D BUILDINGS (Simple Box-based) =========
+        const buildingConfigs = [
+            { x: -50, z: -50, w: 10, h: 8, d: 8, roofH: 3 },
+            { x: 40, z: -60, w: 8, h: 6, d: 12, roofH: 2.5 },
+            { x: -60, z: 40, w: 12, h: 7, d: 10, roofH: 3 },
+            { x: 55, z: 50, w: 9, h: 10, d: 9, roofH: 3.5 },
+            { x: 0, z: -80, w: 14, h: 5, d: 8, roofH: 2 },
+            { x: -80, z: 0, w: 7, h: 6, d: 7, roofH: 2 },
+            { x: 80, z: -20, w: 10, h: 9, d: 10, roofH: 3 },
+            { x: -30, z: 80, w: 8, h: 5, d: 6, roofH: 2 },
+            { x: 30, z: 70, w: 6, h: 12, d: 6, roofH: 2 },
+            { x: -90, z: -70, w: 10, h: 6, d: 10, roofH: 2.5 },
+            { x: 90, z: 70, w: 8, h: 7, d: 12, roofH: 2.5 },
+            { x: -20, z: -40, w: 6, h: 4, d: 6, roofH: 1.5 },
+            { x: 60, z: -10, w: 5, h: 8, d: 5, roofH: 2 },
+            { x: -70, z: 60, w: 11, h: 5, d: 7, roofH: 2 },
+            { x: 10, z: 50, w: 7, h: 6, d: 9, roofH: 2.5 },
+        ];
+
+        buildingConfigs.forEach(cfg => {
+            const buildingGroup = new THREE.Group();
+
+            // Main body
+            const bodyGeo = new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d);
+            const body = new THREE.Mesh(bodyGeo, buildingMat);
+            body.position.y = cfg.h / 2;
+            body.castShadow = true; body.receiveShadow = true;
+            buildingGroup.add(body);
+
+            // Roof (pyramid-like using ConeGeometry or flat top)
+            if (Math.random() > 0.3) {
+                // Pointed roof
+                const roofGeo = new THREE.ConeGeometry(Math.max(0.5, Math.max(cfg.w, cfg.d) * 0.7), cfg.roofH, 4);
+                const roof = new THREE.Mesh(roofGeo, roofMat);
+                roof.position.y = cfg.h + cfg.roofH / 2;
+                roof.rotation.y = Math.PI / 4;
+                roof.castShadow = true;
+                buildingGroup.add(roof);
+            } else {
+                // Flat roof with border
+                const flatRoofGeo = new THREE.BoxGeometry(cfg.w + 0.5, 0.3, cfg.d + 0.5);
+                const flatRoof = new THREE.Mesh(flatRoofGeo, roofMat);
+                flatRoof.position.y = cfg.h + 0.15;
+                flatRoof.castShadow = true;
+                buildingGroup.add(flatRoof);
+            }
+
+            // Windows (small emissive boxes)
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd66, transparent: true, opacity: 0.6 });
+            for (let wy = 2; wy < cfg.h - 1; wy += 2.5) {
+                for (let wx = -cfg.w / 2 + 1.5; wx < cfg.w / 2 - 1; wx += 2.5) {
+                    if (Math.random() > 0.4) {
+                        const winGeo = new THREE.BoxGeometry(0.8, 1.0, 0.1);
+                        const win = new THREE.Mesh(winGeo, windowMat);
+                        win.position.set(wx, wy, cfg.d / 2 + 0.06);
+                        buildingGroup.add(win);
+                        // Window on back wall
+                        const win2 = win.clone();
+                        win2.position.z = -cfg.d / 2 - 0.06;
+                        buildingGroup.add(win2);
+                    }
+                }
+            }
+
+            // Door
+            const doorGeo = new THREE.BoxGeometry(1.2, 2.0, 0.1);
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9, metalness: 0.1 });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            door.position.set(0, 1.0, cfg.d / 2 + 0.06);
+            buildingGroup.add(door);
+
+            buildingGroup.position.set(cfg.x, 0, cfg.z);
+            this.scene.add(buildingGroup);
+
+            // Add building as obstacle with large collision radius
+            const collisionObs = new THREE.Object3D();
+            collisionObs.position.set(cfg.x, cfg.h / 2, cfg.z);
+            collisionObs.userData = { isObstacle: true, collisionRadius: Math.max(cfg.w, cfg.d) * 0.6 };
+            this.obstacles.push(collisionObs);
+            occupiedPositions.push({ x: cfg.x, z: cfg.z });
+        });
+
+        // ========= BROKEN WALLS & RUINS scattered =========
+        const ruinPositions = [
+            { x: -40, z: 20, w: 6, h: 3, d: 0.5, ry: 0.3 },
+            { x: 20, z: -30, w: 8, h: 2.5, d: 0.5, ry: 1.2 },
+            { x: -10, z: 90, w: 5, h: 4, d: 0.5, ry: 0.8 },
+            { x: 70, z: 30, w: 7, h: 3, d: 0.5, ry: 2.1 },
+            { x: -90, z: -30, w: 4, h: 2, d: 0.5, ry: 0.5 },
+        ];
+        ruinPositions.forEach(cfg => {
+            const geo = new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d);
+            const mesh = new THREE.Mesh(geo, wallMat2);
+            mesh.position.set(cfg.x, cfg.h / 2, cfg.z);
+            mesh.rotation.y = cfg.ry;
+            mesh.castShadow = true; mesh.receiveShadow = true;
+            mesh.userData = { isObstacle: true, collisionRadius: cfg.w * 0.4 };
+            this.scene.add(mesh); this.obstacles.push(mesh);
+        });
+
+        // ========= ROCKS =========
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x555544, roughness: 0.95, metalness: 0.05 });
+        for (let i = 0; i < 30; i++) {
+            const size = 0.5 + Math.random() * 1.5;
+            const geo = new THREE.DodecahedronGeometry(size, 1);
+            const rock = new THREE.Mesh(geo, rockMat);
+            rock.position.set(
+                (Math.random() - 0.5) * map.size * 1.6,
+                size * 0.4,
+                (Math.random() - 0.5) * map.size * 1.6
+            );
+            rock.rotation.set(Math.random() * 0.3, Math.random(), Math.random() * 0.3);
+            rock.castShadow = true;
+            rock.userData = { isObstacle: true, collisionRadius: size * 0.8 };
+            this.scene.add(rock); this.obstacles.push(rock);
+        }
+
+        // ========= ADDITIONAL FOREST LIGHTS =========
+        // Firefly-like point lights scattered
+        for (let i = 0; i < 8; i++) {
+            const light = new THREE.PointLight(0x44ff44, 0.3, 25);
+            light.position.set(
+                (Math.random() - 0.5) * map.size,
+                3 + Math.random() * 5,
+                (Math.random() - 0.5) * map.size
+            );
+            this.scene.add(light);
+        }
+
+        // Campfire lights near some buildings
+        [[-50, 0, -45], [40, 0, -55], [-60, 0, 45], [55, 0, 55]].forEach(pos => {
+            const fireLight = new THREE.PointLight(0xff6622, 1.2, 20);
+            fireLight.position.set(pos[0], 1, pos[2]);
+            this.scene.add(fireLight);
+
+            // Fire visual (small emissive mesh)
+            const fireGeo = new THREE.ConeGeometry(0.3, 0.8, 6);
+            const fireMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.8 });
+            const fire = new THREE.Mesh(fireGeo, fireMat);
+            fire.position.set(pos[0], 0.4, pos[2]);
+            this.scene.add(fire);
+        });
     }
 
     initWorld() {
@@ -678,11 +953,16 @@ class HeheFPS {
 
     hitEnemy(enemy, damage) {
         enemy.health -= damage;
-        if (enemy.mesh.material) {
-            const origColor = enemy.mesh.material.color.getHex();
-            enemy.mesh.material.color.setHex(0xffffff);
-            setTimeout(() => { if (enemy.mesh.material) enemy.mesh.material.color.setHex(origColor); }, 80);
-        }
+        // Flash all child meshes white for hit feedback
+        const childMeshes = [];
+        enemy.mesh.traverse(child => { if (child.isMesh) childMeshes.push(child); });
+        const origColors = childMeshes.map(m => m.material.color.getHex());
+        childMeshes.forEach(m => { if (m.material.color) m.material.color.setHex(0xffffff); });
+        setTimeout(() => {
+            childMeshes.forEach((m, i) => {
+                if (m.material && m.material.color && origColors[i] !== undefined) m.material.color.setHex(origColors[i]);
+            });
+        }, 80);
         if (enemy.health <= 0) this.killEnemy(enemy);
         else if (enemy.isBoss) this.updateBossBar();
     }
@@ -713,46 +993,158 @@ class HeheFPS {
     }
 
     // ==================== ENEMIES ====================
+    createHumanoidEnemy(color, type, size) {
+        const group = new THREE.Group();
+
+        // Colors
+        const bodyColor = color;
+        const clothColor = new THREE.Color(color).multiplyScalar(0.5).getHex();
+        const skinColor = 0xddbb99;
+
+        // Materials
+        const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0.4, emissive: bodyColor, emissiveIntensity: 0.2 });
+        const clothMat = new THREE.MeshStandardMaterial({ color: clothColor, roughness: 0.8, metalness: 0.1 });
+        const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.7, metalness: 0.1 });
+
+        // === HEAD ===
+        const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const head = new THREE.Mesh(headGeo, skinMat);
+        head.position.y = 1.85;
+        head.castShadow = true;
+        group.add(head);
+
+        // Eyes on head
+        const eyeGeo = new THREE.SphereGeometry(0.07, 6, 6);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye1.position.set(-0.12, 1.9, -0.26);
+        group.add(eye1);
+        const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye2.position.set(0.12, 1.9, -0.26);
+        group.add(eye2);
+
+        // Pupils
+        const pupilGeo = new THREE.SphereGeometry(0.04, 6, 6);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: type === 'boss' ? 0xff0000 : 0xff0000 });
+        const p1 = new THREE.Mesh(pupilGeo, pupilMat);
+        p1.position.set(-0.12, 1.9, -0.3);
+        group.add(p1);
+        const p2 = new THREE.Mesh(pupilGeo, pupilMat);
+        p2.position.set(0.12, 1.9, -0.3);
+        group.add(p2);
+
+        // === TORSO (ကိုယ်ထည်) ===
+        const torsoGeo = new THREE.BoxGeometry(0.8, 1.2, 0.6);
+        const torso = new THREE.Mesh(torsoGeo, clothMat);
+        torso.position.y = 1.15;
+        torso.castShadow = true;
+        group.add(torso);
+
+        // Belt/waist detail
+        const beltGeo = new THREE.BoxGeometry(0.82, 0.1, 0.62);
+        const beltMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5, metalness: 0.3 });
+        const belt = new THREE.Mesh(beltGeo, beltMat);
+        belt.position.y = 0.6;
+        group.add(belt);
+
+        // === LEFT ARM ===
+        const armGeo = new THREE.BoxGeometry(0.25, 1.0, 0.25);
+        const leftArm = new THREE.Mesh(armGeo, bodyMat);
+        leftArm.position.set(-0.55, 1.15, 0);
+        leftArm.castShadow = true;
+        leftArm.userData.isArm = true;
+        group.add(leftArm);
+
+        // Left hand
+        const handGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+        const leftHand = new THREE.Mesh(handGeo, skinMat);
+        leftHand.position.set(-0.55, 0.58, 0);
+        group.add(leftHand);
+
+        // === RIGHT ARM ===
+        const rightArm = new THREE.Mesh(armGeo.clone(), bodyMat);
+        rightArm.position.set(0.55, 1.15, 0);
+        rightArm.castShadow = true;
+        rightArm.userData.isArm = true;
+        group.add(rightArm);
+
+        // Right hand
+        const rightHand = new THREE.Mesh(handGeo.clone(), skinMat);
+        rightHand.position.set(0.55, 0.58, 0);
+        group.add(rightHand);
+
+        // === LEFT LEG ===
+        const legGeo = new THREE.BoxGeometry(0.3, 1.0, 0.3);
+        const leftLeg = new THREE.Mesh(legGeo, clothMat);
+        leftLeg.position.set(-0.22, 0.1, 0);
+        leftLeg.castShadow = true;
+        leftLeg.userData.isLeg = true;
+        group.add(leftLeg);
+
+        // Left foot
+        const footGeo = new THREE.BoxGeometry(0.3, 0.12, 0.4);
+        const leftFoot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 }));
+        leftFoot.position.set(-0.22, -0.44, -0.05);
+        group.add(leftFoot);
+
+        // === RIGHT LEG ===
+        const rightLeg = new THREE.Mesh(legGeo.clone(), clothMat);
+        rightLeg.position.set(0.22, 0.1, 0);
+        rightLeg.castShadow = true;
+        rightLeg.userData.isLeg = true;
+        group.add(rightLeg);
+
+        // Right foot
+        const rightFoot = new THREE.Mesh(footGeo.clone(), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 }));
+        rightFoot.position.set(0.22, -0.44, -0.05);
+        group.add(rightFoot);
+
+        // === BOSS EXTRAS ===
+        if (type === 'boss') {
+            // Crown / Horns
+            const hornMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xffaa00, emissiveIntensity: 0.3, roughness: 0.3, metalness: 0.8 });
+            const h1 = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 6), hornMat);
+            h1.position.set(-0.2, 2.25, 0);
+            group.add(h1);
+            const h2 = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 6), hornMat);
+            h2.position.set(0.2, 2.25, 0);
+            group.add(h2);
+            // Crown ring
+            const crown = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 8, 16), hornMat);
+            crown.position.set(0, 2.15, 0);
+            crown.rotation.x = Math.PI / 2;
+            group.add(crown);
+
+            // Shoulder pads
+            const padGeo = new THREE.BoxGeometry(0.35, 0.2, 0.35);
+            const padMat = new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0xff4400, emissiveIntensity: 0.2, roughness: 0.4, metalness: 0.6 });
+            const lPad = new THREE.Mesh(padGeo, padMat);
+            lPad.position.set(-0.6, 1.65, 0);
+            group.add(lPad);
+            const rPad = new THREE.Mesh(padGeo.clone(), padMat);
+            rPad.position.set(0.6, 1.65, 0);
+            group.add(rPad);
+        }
+
+        // Scale the entire group by size
+        group.scale.setScalar(size);
+
+        return group;
+    }
     spawnEnemy(type = 'basic') {
         const enemyType = this.enemyTypes[type];
         if (!enemyType) return;
 
         const size = enemyType.size;
-        const geo = type === 'boss' ? new THREE.BoxGeometry(size, size*2, size) : new THREE.BoxGeometry(size, size*1.5, size);
-        const mat = new THREE.MeshStandardMaterial({
-            color: enemyType.color, roughness: 0.6, metalness: 0.4,
-            emissive: enemyType.color, emissiveIntensity: 0.2
-        });
-        const mesh = new THREE.Mesh(geo, mat);
-
-        // Eyes
-        const eyeGeo = new THREE.SphereGeometry(size*0.12, 6, 6);
-        const eyeMat = new THREE.MeshBasicMaterial({color:0xffffff});
-        const eye1 = new THREE.Mesh(eyeGeo, eyeMat); eye1.position.set(-size*0.2, size*0.35, -size*0.5); mesh.add(eye1);
-        const eye2 = new THREE.Mesh(eyeGeo, eyeMat); eye2.position.set(size*0.2, size*0.35, -size*0.5); mesh.add(eye2);
-        const pupilGeo = new THREE.SphereGeometry(size*0.06, 6, 6);
-        const pupilMat = new THREE.MeshBasicMaterial({color: type==='boss'?0xff0000:0xff0000});
-        const p1 = new THREE.Mesh(pupilGeo, pupilMat); p1.position.set(0,0,-size*0.07); eye1.add(p1);
-        const p2 = new THREE.Mesh(pupilGeo, pupilMat); p2.position.set(0,0,-size*0.07); eye2.add(p2);
-
-        // Boss crown/horns
-        if (type === 'boss') {
-            const hornMat = new THREE.MeshStandardMaterial({color:0xffaa00, emissive:0xffaa00, emissiveIntensity:0.3, roughness:0.3, metalness:0.8});
-            const h1 = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1, 6), hornMat);
-            h1.position.set(-size*0.4, size*1.2, 0); mesh.add(h1);
-            const h2 = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1, 6), hornMat);
-            h2.position.set(size*0.4, size*1.2, 0); mesh.add(h2);
-            // Crown ring
-            const crown = new THREE.Mesh(new THREE.TorusGeometry(size*0.5, 0.1, 8, 16), hornMat);
-            crown.position.set(0, size*1.1, 0); crown.rotation.x = Math.PI/2; mesh.add(crown);
-        }
+        const mesh = this.createHumanoidEnemy(enemyType.color, type, size);
 
         let spawnPos;
+        const maxSpawnDist = Math.min(40, this.arenaSize * 0.5);
         do {
             const angle = Math.random() * Math.PI * 2;
-            const dist = 20 + Math.random() * 20;
-            spawnPos = new THREE.Vector3(Math.cos(angle)*dist, size*0.75, Math.sin(angle)*dist);
-        } while (spawnPos.distanceTo(this.yawObject.position) < 15);
+            const dist = 15 + Math.random() * maxSpawnDist;
+            spawnPos = new THREE.Vector3(Math.cos(angle)*dist, 0, Math.sin(angle)*dist);
+        } while (spawnPos.distanceTo(this.yawObject.position) < 12);
 
         const half = this.arenaSize - 2;
         spawnPos.x = Math.max(-half, Math.min(half, spawnPos.x));
@@ -803,8 +1195,9 @@ class HeheFPS {
 
             // Simple obstacle avoidance
             for (const obs of this.obstacles) {
+                const colRadius = obs.userData.collisionRadius || 1.5;
                 const dist = newPos.distanceTo(obs.position);
-                if (dist < 1.5) {
+                if (dist < colRadius) {
                     const perp = new THREE.Vector3(-direction.z, 0, direction.x);
                     newPos.add(perp.multiplyScalar(2 * delta * moveSpeed));
                     break;
@@ -812,7 +1205,20 @@ class HeheFPS {
             }
 
             enemy.mesh.position.copy(newPos);
-            enemy.mesh.position.y = enemy.type.size * 0.75 + Math.sin(Date.now()*0.005 + enemy.mesh.id) * 0.1;
+            enemy.mesh.position.y = Math.sin(Date.now()*0.005 + enemy.mesh.id) * 0.08;
+
+            // Humanoid walking animation (animate arms & legs)
+            const walkCycle = Date.now() * 0.008 * moveSpeed;
+            enemy.mesh.children.forEach(child => {
+                if (child.userData.isLeg) {
+                    const offset = child.position.x > 0 ? 0 : Math.PI;
+                    child.rotation.x = Math.sin(walkCycle + offset) * 0.4;
+                }
+                if (child.userData.isArm) {
+                    const offset = child.position.x > 0 ? Math.PI : 0;
+                    child.rotation.x = Math.sin(walkCycle + offset) * 0.3;
+                }
+            });
 
             // Melee attack
             const distToPlayer = enemy.mesh.position.distanceTo(this.yawObject.position);
@@ -1551,8 +1957,9 @@ class HeheFPS {
 
             let canMove = true;
             for (const obs of this.obstacles) {
+                const colRadius = obs.userData.collisionRadius || 1.5;
                 const dist = new THREE.Vector2(newPos.x - obs.position.x, newPos.z - obs.position.z).length();
-                if (dist < 1.5) { canMove = false; break; }
+                if (dist < colRadius) { canMove = false; break; }
             }
             if (canMove) { this.yawObject.position.copy(newPos); this.yawObject.position.y = 1.7; }
         }

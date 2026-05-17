@@ -390,3 +390,44 @@ body {
     .boss-announce-text { font-size: 2em; }
     #boss-bar { width: 280px; }
 }
+
+/* ===== Force Landscape (v3.1 Auto-Landscape) ===== */
+body.force-landscape {
+    transform: rotate(90deg);
+    transform-origin: top left;
+    width: 100vh;
+    height: 100vw;
+    position: fixed;
+    top: 0;
+    left: 100vw;
+    overflow: hidden;
+}
+
+body.force-landscape #game-canvas-container {
+    width: 100vh !important;
+    height: 100vw !important;
+}
+
+body.force-landscape #game-canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Landscape orientation notification */
+.landscape-notice {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 9999;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #fff; text-align: center;
+}
+.landscape-notice .rotate-icon {
+    font-size: 60px;
+    animation: rotatePhone 1.5s ease-in-out infinite;
+}
+@keyframes rotatePhone {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+}
+.landscape-notice p { font-size: 1.2em; margin-top: 15px; color: #888; }

@@ -38,6 +38,18 @@ jobs:
     - name: Sync Android project
       run: npx cap sync android
     
+    - name: Force Landscape Orientation in AndroidManifest
+      run: |
+        MANIFEST="android/app/src/main/AndroidManifest.xml"
+        if [ -f "$MANIFEST" ]; then
+          sed -i 's/android:screenOrientation="unspecified"/android:screenOrientation="sensorLandscape"/g' "$MANIFEST"
+          sed -i 's/android:screenOrientation="portrait"/android:screenOrientation="sensorLandscape"/g' "$MANIFEST"
+          if ! grep -q "android:screenOrientation" "$MANIFEST"; then
+            sed -i 's/<activity /\0android:screenOrientation="sensorLandscape" /g' "$MANIFEST"
+          fi
+          echo "AndroidManifest.xml updated for landscape orientation"
+        fi
+    
     - name: Build APK
       working-directory: android
       run: ./gradlew assembleDebug
@@ -51,8 +63,8 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v1.0.${{ github.run_number }}
-        name: Hehe Snake v1.0.${{ github.run_number }}
+        tag_name: v3.1.${{ github.run_number }}
+        name: Hehe FPS v3.1.${{ github.run_number }}
         files: android/app/build/outputs/apk/debug/app-debug.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
