@@ -26,8 +26,28 @@
         <div class="start-content">
             <div class="game-logo">🔫</div>
             <h1>HEHE <span class="accent">FPS</span></h1>
-            <p class="tagline">3D Shooter Game</p>
+            <p class="tagline">3D SHOOTER GAME</p>
             
+            <!-- Map Selector -->
+            <div class="section-label">🗺️ SELECT MAP</div>
+            <div id="map-selector">
+                <div class="map-card active" data-map="arena">
+                    <div class="map-preview">🏟️</div>
+                    <div class="map-name">Arena</div>
+                    <div class="map-desc">Classic Arena</div>
+                </div>
+                <div class="map-card" data-map="warehouse">
+                    <div class="map-preview">🏭</div>
+                    <div class="map-name">Warehouse</div>
+                    <div class="map-desc">Indoor Combat</div>
+                </div>
+                <div class="map-card" data-map="ruins">
+                    <div class="map-preview">🏛️</div>
+                    <div class="map-name">Ruins</div>
+                    <div class="map-desc">Ancient City</div>
+                </div>
+            </div>
+
             <div class="controls-info">
                 <div class="control-group">
                     <h3>⌨️ Desktop</h3>
@@ -35,8 +55,9 @@
                     <div class="key-row"><span class="kbd">Mouse</span> ကြည့်ရှု</div>
                     <div class="key-row"><span class="kbd">Click</span> ပစ်</div>
                     <div class="key-row"><span class="kbd">R</span> ကျည်ဆန်ထည့်</div>
-                    <div class="key-row"><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> လက်နက်ပြောင်း</div>
+                    <div class="key-row"><span class="kbd">1-6</span> လက်နက်ပြောင်း</div>
                     <div class="key-row"><span class="kbd">Shift</span> ပြေး</div>
+                    <div class="key-row"><span class="kbd">M</span> BGM On/Off</div>
                 </div>
                 <div class="control-group">
                     <h3>📱 Mobile</h3>
@@ -44,6 +65,7 @@
                     <div class="key-row">Touch & Drag ကြည့်ရှု</div>
                     <div class="key-row">🔘 Shoot ခလုတ်</div>
                     <div class="key-row">🔄 Reload ခလုတ်</div>
+                    <div class="key-row">🔫 Weapon ခလုတ်</div>
                 </div>
             </div>
 
@@ -82,6 +104,19 @@
                 <span class="hud-label">ENEMIES</span>
                 <span id="enemy-count" class="hud-value">0</span>
             </div>
+            <div class="hud-map">
+                <span class="hud-label">MAP</span>
+                <span id="map-name-hud" class="hud-value-small">Arena</span>
+            </div>
+        </div>
+
+        <!-- Boss Health Bar -->
+        <div id="boss-bar" class="hidden">
+            <div class="boss-name" id="boss-name">💀 BOSS</div>
+            <div class="boss-health-container">
+                <div class="boss-health-bar" id="boss-health-bar"></div>
+            </div>
+            <div class="boss-phase" id="boss-phase">Phase 1</div>
         </div>
 
         <!-- Bottom HUD -->
@@ -120,6 +155,21 @@
                 <span class="weapon-icon">🔫</span>
                 <span class="weapon-name-s">Shotgun</span>
             </div>
+            <div class="weapon-slot" data-weapon="3">
+                <span class="weapon-num">4</span>
+                <span class="weapon-icon">🎯</span>
+                <span class="weapon-name-s">Sniper</span>
+            </div>
+            <div class="weapon-slot" data-weapon="4">
+                <span class="weapon-num">5</span>
+                <span class="weapon-icon">💥</span>
+                <span class="weapon-name-s">RPG</span>
+            </div>
+            <div class="weapon-slot" data-weapon="5">
+                <span class="weapon-num">6</span>
+                <span class="weapon-icon">⚡</span>
+                <span class="weapon-name-s">Minigun</span>
+            </div>
         </div>
 
         <!-- Kill feed -->
@@ -129,6 +179,17 @@
         <div id="wave-announce" class="hidden">
             <div class="wave-text">WAVE <span id="wave-announce-num">1</span></div>
             <div class="wave-sub" id="wave-sub-text">Get Ready!</div>
+        </div>
+
+        <!-- Boss announcement -->
+        <div id="boss-announce" class="hidden">
+            <div class="boss-announce-text">⚠️ BOSS INCOMING ⚠️</div>
+            <div class="boss-announce-sub">Prepare yourself!</div>
+        </div>
+
+        <!-- BGM toggle -->
+        <div id="bgm-toggle" class="hud-btn" title="BGM On/Off">
+            <span id="bgm-icon">🎵</span>
         </div>
     </div>
 
@@ -172,7 +233,7 @@
                     <span id="go-kills" class="go-value">0</span>
                 </div>
                 <div class="go-stat">
-                    <span class="go-label">Best Score</span>
+                    <span class="go-label">Best</span>
                     <span id="go-best" class="go-value">0</span>
                 </div>
             </div>
