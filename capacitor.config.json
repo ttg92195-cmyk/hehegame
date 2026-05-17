@@ -1,6 +1,6 @@
 {
-  "appId": "com.hehegame.snake",
-  "appName": "Hehe Snake",
+  "appId": "com.hehegame.fps",
+  "appName": "Hehe FPS",
   "webDir": "www",
   "server": {
     "androidScheme": "https"
@@ -14,6 +14,6 @@
     }
   },
   "android": {
-    "backgroundColor": "#1a1a2e"
+    "backgroundColor": "#111122"
   }
 }

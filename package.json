@@ -1,14 +1,14 @@
 {
-  "name": "hehe-snake-game",
-  "version": "1.0.0",
-  "description": "🐍 Hehe Snake Game - A fun, colorful Snake game with mobile support",
-  "main": "index.html",
+  "name": "hehe-fps-game",
+  "version": "2.0.0",
+  "description": "🔫 Hehe FPS - 3D First Person Shooter Game",
+  "main": "www/index.html",
   "scripts": {
     "start": "npx http-server www -p 8080 -c-1",
     "build:android": "npx cap add android && npx cap sync android && npx cap open android",
     "build:apk": "cd android && ./gradlew assembleDebug"
   },
-  "keywords": ["snake", "game", "mobile", "android"],
+  "keywords": ["fps", "shooter", "3d", "game", "mobile", "android"],
   "author": "HeheGame Studio",
   "license": "MIT",
   "dependencies": {

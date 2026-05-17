@@ -3,76 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🐍 Hehe Snake Game</title>
+    <title>🔫 Hehe FPS - 3D Shooter</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔫</text></svg>">
 </head>
 <body>
-    <div id="game-container">
-        <!-- Start Screen -->
-        <div id="start-screen" class="screen">
-            <div class="logo">🐍</div>
-            <h1>Hehe Snake</h1>
-            <p class="subtitle">အောက်ပါနည်းလမ်းဖြင့်ကစားပါ</p>
-            <div class="instructions">
-                <div class="instruction-item">
-                    <span class="key">⬆️⬇️⬅️➡️</span>
-                    <span>Keyboard ဖြင့်ကစားရန်</span>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-content">
+            <div class="loader-icon">🔫</div>
+            <h1>HEHE FPS</h1>
+            <div class="loader-bar-container">
+                <div class="loader-bar" id="load-bar"></div>
+            </div>
+            <p id="load-text">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen hidden">
+        <div class="start-bg"></div>
+        <div class="start-content">
+            <div class="game-logo">🔫</div>
+            <h1>HEHE <span class="accent">FPS</span></h1>
+            <p class="tagline">3D Shooter Game</p>
+            
+            <div class="controls-info">
+                <div class="control-group">
+                    <h3>⌨️ Desktop</h3>
+                    <div class="key-row"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> လမ်းလျှောက်</div>
+                    <div class="key-row"><span class="kbd">Mouse</span> ကြည့်ရှု</div>
+                    <div class="key-row"><span class="kbd">Click</span> ပစ်</div>
+                    <div class="key-row"><span class="kbd">R</span> ကျည်ဆန်ထည့်</div>
+                    <div class="key-row"><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> လက်နက်ပြောင်း</div>
+                    <div class="key-row"><span class="kbd">Shift</span> ပြေး</div>
                 </div>
-                <div class="instruction-item">
-                    <span class="key">👆👇👈👉</span>
-                    <span>Touch Screen ဖြင့်ကစားရန်</span>
+                <div class="control-group">
+                    <h3>📱 Mobile</h3>
+                    <div class="key-row">Joystick လမ်းလျှောက်</div>
+                    <div class="key-row">Touch & Drag ကြည့်ရှု</div>
+                    <div class="key-row">🔘 Shoot ခလုတ်</div>
+                    <div class="key-row">🔄 Reload ခလုတ်</div>
                 </div>
             </div>
-            <button id="start-btn" class="btn-primary">🎮 ကစားမယ်!</button>
+
+            <button id="start-btn" class="btn-play">🎮 ကစားမယ်!</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <!-- Crosshair -->
+        <div id="crosshair">
+            <div class="ch-line ch-top"></div>
+            <div class="ch-line ch-right"></div>
+            <div class="ch-line ch-bottom"></div>
+            <div class="ch-line ch-left"></div>
+            <div class="ch-dot"></div>
         </div>
 
-        <!-- Game Screen -->
-        <div id="game-screen" class="screen hidden">
-            <div id="game-header">
-                <div class="score-box">
-                    <span class="score-label">Score</span>
-                    <span id="score" class="score-value">0</span>
-                </div>
-                <div class="score-box">
-                    <span class="score-label">Best</span>
-                    <span id="high-score" class="score-value">0</span>
-                </div>
+        <!-- Hit marker -->
+        <div id="hitmarker" class="hidden">✕</div>
+
+        <!-- Damage overlay -->
+        <div id="damage-overlay"></div>
+
+        <!-- Top HUD -->
+        <div id="hud-top">
+            <div class="hud-wave">
+                <span class="hud-label">WAVE</span>
+                <span id="wave-num" class="hud-value">1</span>
             </div>
-            <canvas id="game-canvas"></canvas>
-            <!-- Mobile Controls -->
-            <div id="mobile-controls">
-                <div class="control-row">
-                    <button class="ctrl-btn" id="btn-up">⬆️</button>
+            <div class="hud-score">
+                <span class="hud-label">SCORE</span>
+                <span id="score-num" class="hud-value">0</span>
+            </div>
+            <div class="hud-enemies">
+                <span class="hud-label">ENEMIES</span>
+                <span id="enemy-count" class="hud-value">0</span>
+            </div>
+        </div>
+
+        <!-- Bottom HUD -->
+        <div id="hud-bottom">
+            <div class="hud-health-container">
+                <div class="hud-icon">❤️</div>
+                <div class="hud-bar-container">
+                    <div class="hud-bar hud-health-bar" id="health-bar"></div>
                 </div>
-                <div class="control-row">
-                    <button class="ctrl-btn" id="btn-left">⬅️</button>
-                    <button class="ctrl-btn" id="btn-down">⬇️</button>
-                    <button class="ctrl-btn" id="btn-right">➡️</button>
+                <span id="health-text" class="hud-bar-text">100</span>
+            </div>
+            <div class="hud-ammo-container">
+                <div class="hud-weapon-name" id="weapon-name">PISTOL</div>
+                <div class="hud-ammo">
+                    <span id="ammo-current" class="ammo-current">12</span>
+                    <span class="ammo-separator">/</span>
+                    <span id="ammo-max" class="ammo-max">12</span>
                 </div>
             </div>
         </div>
 
-        <!-- Game Over Screen -->
-        <div id="gameover-screen" class="screen hidden">
-            <div class="logo">💀</div>
-            <h2>Game Over!</h2>
-            <div class="final-scores">
-                <div class="final-score-item">
-                    <span class="final-label">Score</span>
-                    <span id="final-score" class="final-value">0</span>
+        <!-- Weapon selector -->
+        <div id="weapon-selector">
+            <div class="weapon-slot active" data-weapon="0">
+                <span class="weapon-num">1</span>
+                <span class="weapon-icon">🔫</span>
+                <span class="weapon-name-s">Pistol</span>
+            </div>
+            <div class="weapon-slot" data-weapon="1">
+                <span class="weapon-num">2</span>
+                <span class="weapon-icon">🔫</span>
+                <span class="weapon-name-s">Rifle</span>
+            </div>
+            <div class="weapon-slot" data-weapon="2">
+                <span class="weapon-num">3</span>
+                <span class="weapon-icon">🔫</span>
+                <span class="weapon-name-s">Shotgun</span>
+            </div>
+        </div>
+
+        <!-- Kill feed -->
+        <div id="kill-feed"></div>
+
+        <!-- Wave announcement -->
+        <div id="wave-announce" class="hidden">
+            <div class="wave-text">WAVE <span id="wave-announce-num">1</span></div>
+            <div class="wave-sub" id="wave-sub-text">Get Ready!</div>
+        </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls" class="hidden">
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-thumb"></div>
+            </div>
+        </div>
+        <div id="mobile-btns">
+            <button class="mobile-btn shoot-btn" id="btn-shoot">🔥</button>
+            <button class="mobile-btn reload-btn" id="btn-reload">🔄</button>
+            <button class="mobile-btn weapon-btn" id="btn-weapon">🔫</button>
+        </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="screen hidden">
+        <h2>⏸️ PAUSED</h2>
+        <button id="resume-btn" class="btn-play">▶️ ဆက်ကစားမယ်</button>
+        <button id="quit-btn" class="btn-secondary">🏠 ပြန်သွားမယ်</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen hidden">
+        <div class="gameover-content">
+            <div class="skull-icon">💀</div>
+            <h2>GAME OVER</h2>
+            <div class="go-stats">
+                <div class="go-stat">
+                    <span class="go-label">Score</span>
+                    <span id="go-score" class="go-value">0</span>
                 </div>
-                <div class="final-score-item">
-                    <span class="final-label">Best</span>
-                    <span id="final-high-score" class="final-value">0</span>
+                <div class="go-stat">
+                    <span class="go-label">Wave</span>
+                    <span id="go-wave" class="go-value">1</span>
+                </div>
+                <div class="go-stat">
+                    <span class="go-label">Kills</span>
+                    <span id="go-kills" class="go-value">0</span>
+                </div>
+                <div class="go-stat">
+                    <span class="go-label">Best Score</span>
+                    <span id="go-best" class="go-value">0</span>
                 </div>
             </div>
-            <div id="new-record" class="hidden">🎉 Records အသစ်!</div>
-            <button id="restart-btn" class="btn-primary">🔄 ထပ်ကစားမယ်!</button>
+            <button id="retry-btn" class="btn-play">🔄 ထပ်ကစားမယ်</button>
             <button id="home-btn" class="btn-secondary">🏠 ပြန်သွားမယ်</button>
         </div>
     </div>
 
+    <!-- Game Canvas (Three.js renders here) -->
+    <div id="game-canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>
