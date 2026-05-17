@@ -1,0 +1,22 @@
+{
+  "name": "hehe-snake-game",
+  "version": "1.0.0",
+  "description": "🐍 Hehe Snake Game - A fun, colorful Snake game with mobile support",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -c-1",
+    "build:android": "npx cap add android && npx cap sync android && npx cap open android",
+    "build:apk": "cd android && ./gradlew assembleDebug"
+  },
+  "keywords": ["snake", "game", "mobile", "android"],
+  "author": "HeheGame Studio",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "http-server": "^14.1.1"
+  }
+}
