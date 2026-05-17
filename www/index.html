@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐍 Hehe Snake Game</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <div class="logo">🐍</div>
+            <h1>Hehe Snake</h1>
+            <p class="subtitle">အောက်ပါနည်းလမ်းဖြင့်ကစားပါ</p>
+            <div class="instructions">
+                <div class="instruction-item">
+                    <span class="key">⬆️⬇️⬅️➡️</span>
+                    <span>Keyboard ဖြင့်ကစားရန်</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="key">👆👇👈👉</span>
+                    <span>Touch Screen ဖြင့်ကစားရန်</span>
+                </div>
+            </div>
+            <button id="start-btn" class="btn-primary">🎮 ကစားမယ်!</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen hidden">
+            <div id="game-header">
+                <div class="score-box">
+                    <span class="score-label">Score</span>
+                    <span id="score" class="score-value">0</span>
+                </div>
+                <div class="score-box">
+                    <span class="score-label">Best</span>
+                    <span id="high-score" class="score-value">0</span>
+                </div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+            <!-- Mobile Controls -->
+            <div id="mobile-controls">
+                <div class="control-row">
+                    <button class="ctrl-btn" id="btn-up">⬆️</button>
+                </div>
+                <div class="control-row">
+                    <button class="ctrl-btn" id="btn-left">⬅️</button>
+                    <button class="ctrl-btn" id="btn-down">⬇️</button>
+                    <button class="ctrl-btn" id="btn-right">➡️</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="screen hidden">
+            <div class="logo">💀</div>
+            <h2>Game Over!</h2>
+            <div class="final-scores">
+                <div class="final-score-item">
+                    <span class="final-label">Score</span>
+                    <span id="final-score" class="final-value">0</span>
+                </div>
+                <div class="final-score-item">
+                    <span class="final-label">Best</span>
+                    <span id="final-high-score" class="final-value">0</span>
+                </div>
+            </div>
+            <div id="new-record" class="hidden">🎉 Records အသစ်!</div>
+            <button id="restart-btn" class="btn-primary">🔄 ထပ်ကစားမယ်!</button>
+            <button id="home-btn" class="btn-secondary">🏠 ပြန်သွားမယ်</button>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>

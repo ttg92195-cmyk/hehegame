@@ -1,7 +1,7 @@
 {
   "appId": "com.hehegame.snake",
   "appName": "Hehe Snake",
-  "webDir": ".",
+  "webDir": "www",
   "server": {
     "androidScheme": "https"
   },

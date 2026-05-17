@@ -4,7 +4,7 @@
   "description": "🐍 Hehe Snake Game - A fun, colorful Snake game with mobile support",
   "main": "index.html",
   "scripts": {
-    "start": "npx http-server . -p 8080 -c-1",
+    "start": "npx http-server www -p 8080 -c-1",
     "build:android": "npx cap add android && npx cap sync android && npx cap open android",
     "build:apk": "cd android && ./gradlew assembleDebug"
   },
